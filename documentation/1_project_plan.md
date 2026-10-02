@@ -498,7 +498,7 @@ That's enough.
 
 Keep this somewhere and don't move to the next major stage until the previous one is genuinely working.
 
-- [ ] M0: Project scope defined
+- [x] M0: Project scope defined
 - [ ] M1: Raw data completely understood
 - [ ] M2: Reproducible ETL pipeline
 - [ ] M3: Proper PostgreSQL database
