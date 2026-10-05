@@ -17,4 +17,7 @@ for file in files:
     path = DATA_DIR / file
     df = pd.read_csv(path)
     
-    print(f"Row count of {file}: ", len(df))
+    print(f"Information on {file}:")
+    print("Row count: ", len(df))
+    print("Column count: ", len(df.columns))
+    print()
