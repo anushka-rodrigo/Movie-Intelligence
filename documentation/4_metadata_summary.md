@@ -29,7 +29,7 @@
 
 1. **There are two different movie-id systems.** TMDB ids (`movies_metadata.id`, `credits.id`, `keywords.id`, `links.tmdbId`) and MovieLens ids (`ratings.movieId`, `links.movieId`). `links` is the only table that holds both, so it is the bridge.
 2. **Joining `ratings` directly to `movies_metadata` is wrong.** 37,550 of 45,115 rated movies (83.2%) match nothing, and the 7,565 that do match are coincidences between two unrelated numberings. No error is raised.
-3. **`movies_metadata` has 3 corrupted records.** Each is split across two physical rows (6 rows in total), with the second row's values shifted 9 columns to the left. This is why `id`, `adult`, `budget`, and `popularity` have the wrong dtype.
+3. **`movies_metadata` has 3 corrupted records.** Each is split across two physical rows (6 rows in total), with the second row's values shifted 9 columns to the left. This is why `id`, `adult`, `budget`, and `popularity` have the wrong dtype. **Cause (confirmed in the raw file):** an `overview` that contains a line break and is not wrapped in quotes, so the parser ends the record at the break.
 4. **Duplicate ids exist in `credits` (43 ids), `keywords` (985 ids), and `movies_metadata` (29 ids).** Keywords duplicates are all exact copies. Credits has 7 and metadata has 13 ids whose copies **disagree**.
 5. **`links` has 30 repeated `tmdbId` values and 219 missing ones.** These can silently merge or multiply rows during a join.
 6. **Pandas' missing counts understate the real gaps.** `budget` is unknown for 80.44% of movies and `revenue` for 83.69%. 31.87% of keyword rows are empty lists.
@@ -265,11 +265,11 @@ All 8 columns parse with **no failures**, but they are Python-style text (single
 - The corrupted row's `release_date` column holds a small number (`1`, `12`, `22`), which matches the last original column, `vote_count` (9 + 14 = 23).
 - `title` is missing in exactly the 6 physical rows (19729, 19730, 29502, 29503, 35586, 35587), confirmed in the notebook. This matches the "6 missing" seen in many columns.
 
-**Likely cause (hypothesis, raw-line check pending):** a line break inside the `overview` text. The stub ends partway through `overview` (original column 9), and the corrupted row begins with the rest of that same overview text (for example `- Written by Ørnås`). That is why the shift is exactly 9. Because the cause is known and the rule is deterministic (join the two overview pieces, then the remaining values fall back into columns 10 onward), **repair is now the stronger option than dropping**.
+**Cause (confirmed by the raw lines):** each stub line in the raw file ends with a line break in the middle of the `overview` text, and the next physical line begins with the rest of that overview (for example ` - Written by Ørnås,0.065736,/ff9q...`). In the two stubs where the start of the overview is visible, it is not wrapped in quotes, so a CSV parser treats the line break as the end of the record. Everything after the break then lands 9 columns to the left, because the break fell inside column 9 (`overview`). The physical line numbers (19,762, 29,571, 35,670) run ahead of the row indexes (19,729, 29,502, 35,586) by a growing amount, which suggests other overviews with line breaks exist but were quoted correctly (hypothesis). Because the cause is known and the fix is deterministic (join the two overview pieces with the line break, then move the remaining values back into columns 10 onward), **repair is the stronger option than dropping**.
 
 **What this explains:** `id` is text, `adult` has 5 values instead of 2, `budget` has 3 non-numeric values, and `popularity` is `object`.
 
-**Decision pending:** repair (reassemble each record) or drop. Either way the **stub and its tail must be treated as one unit**. Dropping only the three bad-id rows would leave three ghost movies behind.
+**Decision (C01 in `7_cleaning_decisions.md`):** repair each record. If it were dropped instead, the **stub and its tail must be treated as one unit**, because dropping only the three bad-id rows would leave three ghost movies behind.
 
 **Missingness pattern:** `release_date` and `status` are each missing 87 times, but only 4 rows are missing both (83 only date, 83 only status), so they are not the same rows. Most rows have 2 to 3 missing fields. Rows with 10 or more missing fields (5 of them) are the corrupted ones.
 
@@ -394,6 +394,6 @@ TMDB is the backbone key because `credits` and `keywords` only carry it. IMDb is
 | 12 | Positive budgets below 1,000 and below 10,000 | **Done:** 245 and 300 |
 | 13 | `vote_count` of the 99 movies with `vote_average` 0 and votes | **Done:** 81 have exactly 1 vote, maximum 58 |
 | 14 | Do `ratings_small` rows match `ratings` without `userId`? | **Done:** 99.67% match; 99.25% of users map to one full user |
-| 15 | Raw lines of the split records (confirm the line-break-in-overview cause) | **Pending** (the check was not in the notebook) |
+| 15 | Raw lines of the split records (confirm the line-break-in-overview cause) | **Done:** confirmed, an unquoted overview containing a line break |
 | 16 | Revenue counterpart of the tiny-budget check (count of tiny positive revenues) | Pending |
 | 17 | Why Excel showed 45,505 rows for `credits` (the file has 45,477 physical lines) | Unresolved, low priority |

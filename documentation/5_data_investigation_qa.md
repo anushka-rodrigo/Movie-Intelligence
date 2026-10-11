@@ -97,7 +97,7 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 - Each stray value belongs to a different, specific column: the date is a `release_date`, the `.jpg` is a `poster_path`, the text is the end of an `overview`, the decimal is a `popularity`.
 - They appear in their original order. That points to a record that was split, not random corruption.
 - The shift is exactly 9: the `adult` position (column 0) holds `overview`-tail text, which sits at original position 9. **Confirmed for all three records** by a notebook test that compared every value with the column 9 positions to its right.
-- The stub ends partway through `overview`, and the corrupted row starts with the rest of that overview. The likely cause is a **line break inside the overview text** (hypothesis, to confirm by viewing the raw lines). That explains why the shift is exactly 9.
+- The stub ends partway through `overview`, and the corrupted row starts with the rest of that overview. The cause is a **line break inside the overview text**, **confirmed in the raw file**: each stub line ends with a line break mid-overview, the next line starts with the rest of the overview, and the overview is not wrapped in quotes, so the parser ends the record there. That explains why the shift is exactly 9.
 
 > **Your first answer:** *Needs work.* You matched the stray values to the correct columns, but the cause you gave ("a scraping error that lost the data") was a guess, and your own Q2.2 answer contradicted it.
 
@@ -418,7 +418,7 @@ These ten questions came from the follow-up notebook outputs. The answers below 
 
 **Question:** where did the break happen, why exactly 9, and how should the records be handled?
 
-**Answer:** The break is inside the `overview` text (original column 9), so the tail is shifted 9 columns left. The likely cause is a line break in the overview (to confirm in the raw lines). The fix is deterministic, so **repair** is stronger than drop: join the two overview pieces and move the rest back into columns 10 onward.
+**Answer:** The break is inside the `overview` text (original column 9), so the tail is shifted 9 columns left. The cause is a line break in an unquoted overview (confirmed in the raw lines). The fix is deterministic, so **repair** is stronger than drop: join the two overview pieces and move the rest back into columns 10 onward.
 
 ### R2.10: Notebook hygiene
 
@@ -500,11 +500,8 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 
 ### 7. Still to do before Stage 1 is closed
 
-**Investigation:** one check remains pending: view the raw lines of the split records to confirm the line-break-in-overview cause (a quick revenue counterpart to the tiny-budget check is optional).
+**Deliverables done:** data-quality report (`4_metadata_summary.md`), data dictionary (`6_data_dictionary.md`), cleaning decisions (`7_cleaning_decisions.md`), relationship diagram (`8_relationship_diagram.md`).
 
-**Deliverables:**
-1. Data dictionary (one row per column with a meaning in your own words).
-2. Relationship diagram with the cardinality of each link.
-3. Cleaning-decisions list (problem, action, reason, table), including the keep-rule for conflicting duplicates, the repair-or-drop choice for the 3 split records, the budget threshold, and the `vote_average` rule.
+**Optional checks still open:** count the tiny positive revenues, compare the 7 conflicting `crew` lists once parsed, and review the 2 genuine IMDb conflicts and the 59 shared-`tmdbId` movies. These feed Stage 2 decisions rather than blocking Stage 1.
 
 **Milestone check:** can you explain the two id systems and the join chain without opening the notebook? If yes, Stage 1 is complete.
