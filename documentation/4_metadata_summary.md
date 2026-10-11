@@ -34,9 +34,12 @@
 5. **`links` has 30 repeated `tmdbId` values and 219 missing ones.** These can silently merge or multiply rows during a join.
 6. **Pandas' missing counts understate the real gaps.** `budget` is unknown for 80.44% of movies and `revenue` for 83.69%. 31.87% of keyword rows are empty lists.
 7. **`imdb_id` has a different format in each table** (`tt0114709` vs `114709`). A join on the raw columns matches nothing.
-8. **The `_small` files are not subsets of the full files** (none of the 100,004 `ratings_small` rows appear in `ratings`).
+8. **The `_small` files are samples of the full files, with renumbered users.** `links_small` agrees with `links` on all 9,115 shared ids, and 99.67% of the distinct (`movieId`, `rating`, `timestamp`) combinations in `ratings_small` appear in `ratings`. The earlier 0-match result was an artifact of `userId` being numbered differently.
 9. **`homepage` is stale** and not trustworthy. The dataset is about 9 years old.
 10. **Excel row counts were unreliable.** Excel's 1,048,576 for `ratings` is its row limit. The real count is 26,024,289.
+11. **The list and dict columns are Python-style text, not JSON.** Every non-empty cell parses with `ast.literal_eval`; only the empty `'[]'` cells are also valid JSON.
+12. **TMDB is a reliable backbone key.** The TMDB path and the IMDb path agree for 45,322 of 45,387 comparable movies (99.86%).
+13. **99.17% of rated movies (44,741 of 45,115) can reach metadata** through the `links` bridge, covering 99.84% of rating rows.
 
 ---
 
@@ -87,8 +90,17 @@ Credits: 44 − 37 = 7. Metadata: 30 − 17 = 13. Keywords: 987 − 987 = 0.
 
 **What to do:**
 - *Identical copies* (credits 36, keywords 985, metadata 16): harmless. Keep one, drop the rest.
-- *Conflicting copies* (credits 7, metadata 13): need a decision about which copy wins. Not yet inspected, see section 10.
-- Some ids appear three times: 1 in credits (44 extra copies across 43 ids) and 2 in keywords (987 across 985).
+- *Conflicting copies* (credits 7, metadata 13): need a decision about which copy wins (measured differences below).
+- Some ids appear three times (confirmed): id **141971** in credits (44 extra copies across 43 ids), and ids **141971** and **159849** in keywords (987 extra copies across 985 ids).
+
+**Which columns differ in the conflicting copies (measured):**
+
+| Table | Conflicting ids | Columns that differ |
+|---|---:|---|
+| credits | 7 (4912, 69234, 99080, 110428, 132641, 159849, 298721) | `crew` only (the string lengths are identical, so the difference is in content, not size) |
+| movies_metadata | 13 | `popularity` in all 13; `vote_count` also in 2 (ids 10991 and 15028, e.g. 143 vs 144) |
+
+Four ids (4912, 69234, 110428, 132641) conflict in **both** tables. Fields that change over time (`popularity`, `vote_count`) suggest the copies are **snapshots taken at different times**. Since `vote_count` only grows, the copy with the higher count is the newer one. When only `popularity` differs there is no evidence of which is newer, so a deterministic rule must be chosen and documented.
 
 ### 4.3 The missing-value puzzle (why "Duplicates" never matched)
 
@@ -138,7 +150,7 @@ Column notation: **Dtype (raw)** is what pandas loaded. **Target** is what it sh
 
 | Column | Dtype (raw) | Target | Missing | Missing % | Unique | Range | Verdict |
 |---|---|---|---:|---:|---:|---|---|
-| `movieId` | int64 | int64 | 0 | 0.00 | 9,125 | 1 to 164,979 | Investigate (not a subset of `links`) |
+| `movieId` | int64 | int64 | 0 | 0.00 | 9,125 | 1 to 164,979 | Trust (agrees with `links`; 10 ids appear only here) |
 | `imdbId` | int64 | string `tt0000000` | 0 | 0.00 | 9,125 | 417 to 5,794,766 | Transform |
 | `tmdbId` | float64 | Int64 | 13 | 0.14 | 9,112 | 2 to 416,437 | Transform |
 
@@ -160,7 +172,7 @@ No repeated non-null `tmdbId` (the old "12 duplicates" were the 13 NaNs).
 | `runtime` | float64 | float or Int64 | 263 | 0.58 | 353 | 1,558 zeros. Unknown total: 1,821 (4.01%). Range 0 to 1,256, mean 94.1. | Investigate |
 | `budget` | object | numeric | 0 | 0.00 | 1,226 | 36,573 zeros (80.44%) = unknown. 3 non-numeric values (corrupted rows). | Transform and treat 0 as unknown |
 | `revenue` | float64 | numeric | 6 | 0.01 | 6,863 | 38,052 zeros (83.69%) = unknown. Range 0 to 2,787,965,087. | Transform and treat 0 as unknown |
-| `vote_average` | float64 | float | 6 | 0.01 | 92 | Range 0 to 10. Zeros may be a placeholder for "no votes" (TO VERIFY). | Investigate |
+| `vote_average` | float64 | float | 6 | 0.01 | 92 | Range 0 to 10. All 2,899 movies with `vote_count` 0 have `vote_average` 0.0, which is a placeholder. A further 99 movies have average 0 with `vote_count` above 0: 81 of them have exactly 1 vote and the maximum is 58 votes, so these zeros are also suspect. | Transform (0 means missing when `vote_count` is 0) |
 | `vote_count` | float64 | Int64 | 6 | 0.01 | 1,820 | Range 0 to 14,075. 2,899 zeros (6.38%) are real "no votes". | Transform, zeros are real |
 | `popularity` | object | float64 | 5 | 0.01 | 43,758 | Non-numeric text from corrupted rows forces `object`. | Transform |
 | `adult` | object | bool | 0 | 0.00 | 5 | False 45,454, True 9, 3 corrupted text values | Transform |
@@ -190,10 +202,29 @@ Key (`userId`, `movieId`): 0 repeats.
 
 | Column | Dtype (raw) | Target | Missing | Unique | Range | Verdict |
 |---|---|---|---:|---:|---|---|
-| `userId` | int64 | int32 | 0 | 671 | 1 to 671 | Investigate (separate user numbering) |
-| `movieId` | int64 | int32 | 0 | 9,066 | 1 to 163,949 | Investigate |
+| `userId` | int64 | int32 | 0 | 671 | 1 to 671 | Never mix with `ratings.userId` (separate numbering) |
+| `movieId` | int64 | int32 | 0 | 9,066 | 1 to 163,949 | Trust (same id space as the full file) |
 | `rating` | float64 | float32 | 0 | 10 | 0.5 to 5.0 | Trust |
 | `timestamp` | int64 | datetime (seconds) | 0 | 78,141 | 789,652,009 to 1,476,640,644 | Transform |
+
+### 5.8 Stringified list and dict columns
+
+All 8 columns parse with **no failures**, but they are Python-style text (single quotes), not JSON. The parser for Stage 2 is **`ast.literal_eval`**, not `json.loads`.
+
+| Column | `json_ok` | `python_literal_ok` | Missing | Note |
+|---|---:|---:|---:|---|
+| credits.cast | 2,418 | 43,058 | 0 | `json_ok` equals the `'[]'` count |
+| credits.crew | 771 | 44,705 | 0 | same |
+| keywords.keywords | 14,795 | 31,624 | 0 | same |
+| meta.genres | 2,442 | 43,024 | 0 | same |
+| meta.production_companies | 11,875 | 33,588 | 3 | same |
+| meta.production_countries | **6,285** | 39,178 | 3 | 3 more than the 6,282 empty lists |
+| meta.spoken_languages | 3,829 | 41,631 | 6 | same |
+| meta.belongs_to_collection | **3** | 4,491 | 40,972 | the 3 `json_ok` are not real collections |
+
+**Why `json_ok` equals the empty-list count:** `'[]'` is valid in both JSON and Python, while non-empty cells use single quotes, which only Python accepts.
+
+**The 3 extra values** in `production_countries` and `belongs_to_collection` come from the 3 corrupted rows. Bare numbers such as `0.065736` or `6.0` are valid JSON, so they "parse" even though they are the wrong kind of value for the column. Lesson: **a successful parse proves the syntax is valid, not that the content is the right type.** After parsing, check that the result is a list of dicts (or a dict).
 
 ---
 
@@ -212,14 +243,15 @@ Key (`userId`, `movieId`): 0 repeats.
 | `meta.revenue` | `0` | 38,052 | 83.69 | Unknown |
 | `meta.runtime` | `0` | 1,558 | 3.43 | Unknown (4.01% with the 263 NaN) |
 | `meta.vote_count` | `0` | 2,899 | 6.38 | **Real observation** (no one voted) |
+| `meta.imdb_id` | `'0'` | at least 1 | n/a | Placeholder for unknown (not a valid IMDb id) |
 
-**Consequence:** averages of `budget` or `revenue`, and ROI (`revenue / budget`), are meaningless until zeros are treated as unknown. Dividing by a zero budget produces infinity. The usable sample for financial analysis is the set of movies with **both** budget and revenue greater than 0 (count **TO VERIFY**).
+**Consequence:** averages of `budget` or `revenue`, and ROI (`revenue / budget`), are meaningless until zeros are treated as unknown. Dividing by a zero budget produces infinity. The usable sample for financial analysis is the set of movies with **both** budget and revenue greater than 0: **5,381 movies (11.84%)**. The 15 smallest positive budgets are all exactly **1.0**, which cannot be a dollar amount, so "greater than 0" is not a sufficient test. Positive budgets by size (measured): **25** are below 2, **79** below 10, **138** below 100, **245** below 1,000, **300** below 10,000, and **554** below 100,000. The most common real budgets are round figures (5,000,000 is the most frequent). Sample rows show the problem: *Modern Times* (1936) has budget 1 and revenue 8,500,000, and *Aquí Entre Nos* has budget 1 and revenue 2,755,584. **Revenue has the same problem**: tiny revenues such as 1, 3, 5 and 100 appear (e.g. *Saamy*, *East of Eden*). Proposed rule (to confirm): treat budgets below 1,000 as unknown, and apply an equivalent check to revenue (count pending).
 
 ---
 
 ## 7. Malformed records in `movies_metadata`
 
-**Finding:** 3 logical records are split across 6 physical rows. A stub row holds the first columns of the record and is followed by a row containing the **tail** of the same record, shifted **9 columns to the left**.
+**Finding:** 3 logical records are split across 6 physical rows. A stub row holds the first columns of the record and is followed by a row containing the **tail** of the same record, shifted **9 columns to the left**. The 9-column shift is **confirmed for all three records** by a notebook test: every value in a corrupted row matches the column 9 positions to its right.
 
 | Stub row index | Stub id | Corrupted row index | Value sitting in `id` column |
 |---:|---:|---:|---|
@@ -230,8 +262,10 @@ Key (`userId`, `movieId`): 0 repeats.
 **Evidence:**
 - All 3 rows with a non-numeric `id` are exactly the 3 rows with an invalid `adult` value.
 - In the corrupted row, consecutive original columns appear in order, shifted left: overview text, then popularity, poster path, production companies, production countries, release date.
-- The corrupted row's `release_date` column holds a small number (`1`, `12`), which matches the last original column, `vote_count` (9 + 14 = 23).
-- `title` is missing for all 6 physical rows, matching the "6 missing" seen in many columns.
+- The corrupted row's `release_date` column holds a small number (`1`, `12`, `22`), which matches the last original column, `vote_count` (9 + 14 = 23).
+- `title` is missing in exactly the 6 physical rows (19729, 19730, 29502, 29503, 35586, 35587), confirmed in the notebook. This matches the "6 missing" seen in many columns.
+
+**Likely cause (hypothesis, raw-line check pending):** a line break inside the `overview` text. The stub ends partway through `overview` (original column 9), and the corrupted row begins with the rest of that same overview text (for example `- Written by Ørnås`). That is why the shift is exactly 9. Because the cause is known and the rule is deterministic (join the two overview pieces, then the remaining values fall back into columns 10 onward), **repair is now the stronger option than dropping**.
 
 **What this explains:** `id` is text, `adult` has 5 values instead of 2, `budget` has 3 non-numeric values, and `popularity` is `object`.
 
@@ -268,10 +302,23 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 | ratings.movieId | meta.id (**wrong join**) | 7,565 | 37,550 | 37,868 |
 
 **Reading the table:**
-- `credits` and `keywords` contain exactly the same ids and cover every metadata movie except 1 (which one: TO VERIFY).
+- `credits` and `keywords` contain exactly the same ids and cover every metadata movie except 1: **id 401840, "School's out"** (released 2017-05-30, status Released, 0 votes). It is a normal row, not one of the corrupted records. Hypothesis (to verify): it was added to TMDB after the credits and keywords snapshot was taken.
 - 161 `links.tmdbId` values point at movies that do not exist in metadata.
 - 728 movies in `links` have never been rated.
 - The last row is the proof that the two id systems differ. Only 16.8% of rated movies match by coincidence of numbers.
+
+**Reachability through the bridge (measured):**
+
+| Step | Movies |
+|---|---:|
+| Rated movies | 45,115 |
+| Lost: no `tmdbId` in `links` | 213 |
+| Lost: `tmdbId` not in metadata | 161 |
+| **Reachable in metadata** | **44,741 (99.17%)** |
+
+- 213 (not 219) lost for a missing `tmdbId`, because 6 of the 219 `links` rows with no `tmdbId` were never rated.
+- By rating rows, **25,981,582 of 26,024,289 (99.84%)** are reachable. The 374 lost movies carry only 42,707 ratings (about 114 each, against about 577 for the average rated movie), so they are rarely rated.
+- **59** reachable movies share their `tmdbId` with another `movieId` (the silent-risk case). They need a rule or exclusion before any join.
 
 **Three problems inside `links`:**
 
@@ -297,17 +344,25 @@ After rebuilding the `tt` plus 7-digit form: 45,353 match, 64 only in metadata, 
 | TMDB (`id` vs `tmdbId`) | 0 missing, 30 extra copies | 219 missing, 30 repeats | 0 |
 | IMDb (`imdb_id` vs `imdbId`) | 17 missing, 32 repeats | 0 missing, 0 repeats | 64 |
 
-TMDB is the backbone key because `credits` and `keywords` only carry it. IMDb is a cross-check. Whether the two paths agree on the same movie is **TO VERIFY**.
+TMDB is the backbone key because `credits` and `keywords` only carry it. IMDb is a cross-check.
+
+**Agreement test (measured):** after excluding the 59 ambiguous rows on each side, **45,387** movies were compared. **45,322 agree and 65 disagree (0.14%)**. The two id paths agree for 99.86% of movies, so TMDB is reliable as the backbone. A disagreement does not say which side is wrong; settling that needs an external source (the IMDb or TMDB site). **How the 65 relate to the 64 (measured):** 63 of the 65 disagreeing `imdb_id` values are among the 64 metadata ids that do not exist in `links` at all. So almost all disagreements are metadata ids that `links` has never seen. The 2 exceptions (`tt0486420`, `tt0785025`) exist in `links` but are attached to a different movie, which is a genuine conflict. The one metadata id missing from `links` that is not a disagreement is the string `'0'`, a placeholder for an unknown IMDb id (that row is not in the compared set; why is still to be checked).
 
 ### 8.4 The `_small` files
 
 | Check | Result |
 |---|---|
-| `links_small.movieId` ⊆ `links.movieId` | **False** |
-| `ratings_small.movieId` ⊆ `links_small.movieId` | True |
-| `ratings_small` rows found in `ratings` | **0 of 100,004** |
+| `links_small.movieId` in `links.movieId` | 9,115 of 9,125 (10 appear only in `links_small`) |
+| Shared ids that agree on `tmdbId` and `imdbId` | **9,115 of 9,115** |
+| `ratings_small.movieId` in `links_small.movieId` | True |
+| `ratings_small` vs `ratings`, 4-column match including `userId` | 0 of 100,004 (a **flawed test**, because `userId` is renumbered) |
+| Same match **without** `userId` (distinct `movieId`, `rating`, `timestamp`) | **99,671 of 100,004 (99.67%)**; 333 do not match |
+| Small users that map to exactly one full user | **99.25%** |
 
-The small files are **not samples** of the full files. Untested: whether the same `movieId` points to different movies in the two files.
+- `ratings_small` **is a sample** of `ratings`, with users renumbered (1 to 671 in the small file, 1 to 270,896 in the full file). The `links` files use the same MovieLens id space.
+- **Never combine `userId` values across the two files.**
+- Still unexplained: 333 combinations (0.33%) that do not match, and 10 `movieId` values found only in `links_small`. Both are small enough to ignore for now, but worth a note.
+- Working default: use the full files as the source of truth. The small files are redundant and are useful only for fast prototyping.
 
 ---
 
@@ -316,21 +371,29 @@ The small files are **not samples** of the full files. Untested: whether the sam
 | Check | Result | Verdict |
 |---|---|---|
 | Rating timestamps | 1995-01-09 to 2017-08-04 | Plausible. Convert from Unix seconds. |
-| Runtime | Mean 94.1, median 95, max 1,256, 1,558 zeros | Zeros = unknown. High values need inspection. **Do not cap.** Flag or exclude instead. |
+| Runtime zeros | 1,558 zeros (1,821 unknown with the NaN) | Unknown. Treat as missing. |
+| Runtime above 300 minutes | 108 movies. Top: Centennial 1,256, Jazz 1,140, Baseball 1,140, Berlin Alexanderplatz 931, Heimat 925 | **Not data errors.** These are real TV miniseries and documentary series. **Do not cap or drop.** Flag them (`runtime > 300`) and exclude only from analyses they would distort. The dataset therefore includes more than feature films. |
 
 ---
 
 ## 10. Open items
 
-| # | Item | Needed for |
+| # | Item | Status |
 |---:|---|---|
-| 1 | Reachable rated movies through the bridge (count and % lost) | Section 8 |
-| 2 | Which `meta` id is missing from `credits` and `keywords` | Section 8.2 |
-| 3 | Do the TMDB path and IMDb path agree on the same movie in `links`? | Section 8.3 |
-| 4 | Do shared `movieId` values in `links` and `links_small` point to the same `tmdbId`? | Section 8.4 |
-| 5 | Movies with `runtime` over 300: do the titles look plausible? | Section 9 |
-| 6 | Inspect the 7 (credits) and 13 (metadata) conflicting duplicate ids | Section 4.2 |
-| 7 | Count of movies with both budget and revenue above 0 | Section 6 |
-| 8 | What `vote_average` holds when `vote_count` is 0 | Section 5.5 |
-| 9 | Why Excel showed 45,505 rows for `credits` (the file has 45,477 physical lines, so line breaks do not explain it) | Section 3 |
-| 10 | Does `belongs_to_collection` NaN mean "not in a collection"? | Section 5.5 |
+| 1 | Reachable rated movies through the bridge | **Done:** 44,741 of 45,115 (99.17%); 99.84% of rating rows |
+| 2 | Which `meta` id is missing from `credits` and `keywords` | **Done:** 401840, "School's out" (not a corrupted record) |
+| 3 | Do the TMDB and IMDb paths agree? | **Done:** 45,322 of 45,387 agree (99.86%) |
+| 4 | Do shared `movieId` values in `links` and `links_small` agree? | **Done:** all 9,115 agree |
+| 5 | Movies with `runtime` over 300 | **Done:** 108, mostly miniseries and documentaries |
+| 6 | Inspect the conflicting duplicate ids | **Done:** credits differ in `crew`; metadata in `popularity` (and `vote_count` for 2). Keep-rule goes in the cleaning decisions. |
+| 7 | Movies with both budget and revenue above 0 | **Done:** 5,381 (11.84%) |
+| 8 | `vote_average` when `vote_count` is 0 | **Done:** always 0.0, a placeholder |
+| 9 | Split-record details | **Done:** 6 missing titles and the 9-column shift confirmed for all 3 records |
+| 10 | Triple-id cases | **Done:** 141971 (credits, keywords) and 159849 (keywords) |
+| 11 | Are the 65 IMDb disagreements the 64 ids missing from `links`? | **Done:** 63 overlap; 2 are real conflicts; 1 id is the placeholder `'0'` |
+| 12 | Positive budgets below 1,000 and below 10,000 | **Done:** 245 and 300 |
+| 13 | `vote_count` of the 99 movies with `vote_average` 0 and votes | **Done:** 81 have exactly 1 vote, maximum 58 |
+| 14 | Do `ratings_small` rows match `ratings` without `userId`? | **Done:** 99.67% match; 99.25% of users map to one full user |
+| 15 | Raw lines of the split records (confirm the line-break-in-overview cause) | **Pending** (the check was not in the notebook) |
+| 16 | Revenue counterpart of the tiny-budget check (count of tiny positive revenues) | Pending |
+| 17 | Why Excel showed 45,505 rows for `credits` (the file has 45,477 physical lines) | Unresolved, low priority |
