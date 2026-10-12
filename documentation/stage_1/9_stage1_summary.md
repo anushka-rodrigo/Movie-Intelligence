@@ -34,7 +34,7 @@
 | `ratings.csv` | 26,024,289 | 4 | (`userId`, `movieId`) | User ratings |
 | `ratings_small.csv` | 100,004 | 4 | (`userId`, `movieId`) | Sample of `ratings` |
 
-**Excel versus pandas:** Excel's 1,048,576 for `ratings` was its row limit, not the real count. Four of the other Excel counts were 1 too high because Excel counts the header. The Excel count for `credits` (45,505) is unexplained: the file has 45,477 physical lines, so line breaks do not account for it.
+**Excel versus pandas:** Excel's 1,048,576 for `ratings` was its row limit, not the real count. Three more (`keywords`, `links`, `movies_metadata`) were 1 too high because Excel counts the header. The Excel count for `credits` (45,505) is unexplained: the file has 45,477 physical lines, so line breaks do not account for it.
 
 ---
 
@@ -104,7 +104,7 @@ The 374 lost movies carry only 42,707 ratings (about 114 each, against about 577
 | credits | 44 | 43 | 36 | 7 (differ in `crew`) | Drop identical (C04); your call for the 7 (C05) |
 | movies_metadata | 30 | 29 | 16 | 13 (differ in `popularity`, 2 also in `vote_count`) | Drop identical (C06); keep higher `vote_count` (C07) |
 
-Ids appearing three times: 141971 (credits and keywords) and 159849 (keywords). The identity `extra copies − fully duplicated rows = conflicting ids` holds in every table. The conflicting copies look like snapshots taken at different times.
+Ids appearing three times: 141971 (credits and keywords) and 159849 (keywords). By the arithmetic, one metadata id also appears three times; it has not been named. The identity `extra copies − fully duplicated rows = conflicting ids` holds in every table. The conflicting copies look like snapshots taken at different times.
 
 ### 4.3 Hidden missing values
 
@@ -194,7 +194,7 @@ The full column-by-column meanings are in `6_data_dictionary.md`.
 | File | What it is |
 |---|---|
 | `4_metadata_summary.md` | Data-quality report: every table profiled, with corrected numbers |
-| `5_stage1_data_understanding_qa.md` | The questions, answers and reasoning from the learning process, with overall findings |
+| `5_data_investigation_qa.md` | The questions, answers and reasoning from the learning process, with overall findings |
 | `6_data_dictionary.md` | Every column: meaning, types, missing values, verdict |
 | `7_cleaning_decisions.md` | 30 decisions with evidence, reason and status, plus expected row counts |
 | `8_relationship_diagram.md` | Diagram, cardinalities, join recipes, silent risks |

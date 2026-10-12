@@ -1,9 +1,9 @@
 # Movie Dataset: Data Quality Report
 
 **Project:** Movie Intelligence
-**Stage:** 1, Understand the Raw Data (investigation done, deliverables in progress)
+**Stage:** 1, Understand the Raw Data (investigation and deliverables complete; milestone self-check open)
 **Source:** The Movies Dataset (Kaggle, rounakbanik)
-**Last updated:** 2026-10-07
+**Last updated:** 2026-10-11
 
 > **Where the numbers come from.** Every figure below comes from the pandas investigation notebook (`stage1_data_investigation.ipynb`). Items I have not yet measured are marked **TO VERIFY** and listed in section 10. Nothing marked as a finding is a guess.
 
@@ -55,7 +55,7 @@
 | `ratings.csv` | 26,024,289 | 4 | (`userId`, `movieId`) | MovieLens | User ratings |
 | `ratings_small.csv` | 100,004 | 4 | (`userId`, `movieId`) | MovieLens | Small version of `ratings` |
 
-**Row counts versus Excel:** four of the five Excel counts were exactly 1 higher than pandas because Excel counts the header row. Two are unresolved (see section 10): `credits` (Excel 45,505 vs pandas 45,476) and `ratings` (Excel hit its limit).
+**Row counts versus Excel:** three of the five Excel counts (`keywords`, `links`, `movies_metadata`) were exactly 1 higher than pandas because Excel counts the header row. `ratings` is explained by Excel's 1,048,576-row limit. One is unresolved (see section 10): `credits` (Excel 45,505 vs pandas 45,476).
 
 ---
 
@@ -91,7 +91,7 @@ Credits: 44 − 37 = 7. Metadata: 30 − 17 = 13. Keywords: 987 − 987 = 0.
 **What to do:**
 - *Identical copies* (credits 36, keywords 985, metadata 16): harmless. Keep one, drop the rest.
 - *Conflicting copies* (credits 7, metadata 13): need a decision about which copy wins (measured differences below).
-- Some ids appear three times (confirmed): id **141971** in credits (44 extra copies across 43 ids), and ids **141971** and **159849** in keywords (987 extra copies across 985 ids).
+- Some ids appear three times (confirmed): id **141971** in credits (44 extra copies across 43 ids), and ids **141971** and **159849** in keywords (987 extra copies across 985 ids). By the arithmetic (17 fully duplicated metadata rows across 16 identical ids), one metadata id also appears three times; it has not been named.
 
 **Which columns differ in the conflicting copies (measured):**
 
@@ -174,7 +174,7 @@ No repeated non-null `tmdbId` (the old "12 duplicates" were the 13 NaNs).
 | `revenue` | float64 | numeric | 6 | 0.01 | 6,863 | 38,052 zeros (83.69%) = unknown. Range 0 to 2,787,965,087. | Transform and treat 0 as unknown |
 | `vote_average` | float64 | float | 6 | 0.01 | 92 | Range 0 to 10. All 2,899 movies with `vote_count` 0 have `vote_average` 0.0, which is a placeholder. A further 99 movies have average 0 with `vote_count` above 0: 81 of them have exactly 1 vote and the maximum is 58 votes, so these zeros are also suspect. | Transform (0 means missing when `vote_count` is 0) |
 | `vote_count` | float64 | Int64 | 6 | 0.01 | 1,820 | Range 0 to 14,075. 2,899 zeros (6.38%) are real "no votes". | Transform, zeros are real |
-| `popularity` | object | float64 | 5 | 0.01 | 43,758 | Non-numeric text from corrupted rows forces `object`. | Transform |
+| `popularity` | object | float64 | 5 | 0.01 | 43,758 | Non-numeric text from corrupted rows forces `object`. | Investigate (convert to float first; a time-varying snapshot) |
 | `adult` | object | bool | 0 | 0.00 | 5 | False 45,454, True 9, 3 corrupted text values | Transform |
 | `video` | object | bool | 6 | 0.01 | 2 | False 45,367, True 93. `object` only because bools plus NaN, not corruption. | Transform |
 | `genres` | object | list[dict] | 0 | 0.00 | 4,069 | `'[]'`: 2,442 (5.37%) | Transform (parse) |

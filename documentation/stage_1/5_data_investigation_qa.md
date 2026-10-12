@@ -140,7 +140,7 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 **Reasoning**
 - This is **6 physical rows but 3 logical records.** Dropping only the 3 bad-id rows leaves 3 ghost stubs (an id with no title, date, or status).
 - Whatever is chosen goes into the cleaning-decisions list with the row numbers and the reason.
-- **Your pick:** repair if possible, otherwise drop. Acceptable. The decision is not yet logged.
+- **Your pick:** repair if possible, otherwise drop. Acceptable. The raw-line check later confirmed the cause, so the decision is logged as C01 (repair) in the cleaning list.
 
 > **Your first answer:** *Needs work.* One-sided argument, and the stub consequence was missing.
 
@@ -343,7 +343,7 @@ Empty DataFrame              <- meta, looked up with id 1 directly
 - The 0-of-100,004 ratings match was **not safe to interpret**: it included `userId`, which is numbered differently (1 to 671 vs 1 to 270,896). The fair test (without `userId`) matched 99.67%, and 99.25% of small users map to exactly one full user. 333 combinations (0.33%) and 10 `links_small` ids remain unexplained.
 - Check `2_project_scope.md` in case it says otherwise.
 
-> **Your first answer:** *Needs work.* You correctly saw they are not subsets, but the "contains missing data" claim was untested and you did not say what to do with them.
+> **Your first answer:** *Needs work.* You concluded they are not subsets (the first test seemed to say so), but the "contains missing data" claim was untested and you did not say what to do with them. The later fair test showed the small file is a sample.
 
 ### Q5.3: Plausibility calls: timestamps, runtime zeros, and a runtime cap
 
@@ -448,7 +448,7 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 | Problem | Count | Consequence |
 |---|---:|---|
 | Direct join `ratings` to `meta` | 37,550 rated movies unmatched, 7,565 coincidental matches | Lost and wrong data, no error |
-| `links` rows with no `tmdbId` | 219 | Rated movies unreachable in metadata |
+| `links` rows with no `tmdbId` | 219 (213 of them rated) | Rated movies unreachable in metadata |
 | `links.tmdbId` not in metadata | 161 | Same |
 | Repeated `links.tmdbId` | 30 | Rows multiply or merge silently |
 | `meta` ids missing from `credits` and `keywords` | 1 (id 401840) | One movie has no cast or keywords |
@@ -460,22 +460,24 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 
 | Problem | Count | Proposed action | Status |
 |---|---:|---|---|
-| Keywords duplicate rows (identical) | 985 ids | Drop extra copies | Proposed |
-| Credits and metadata duplicate ids (identical) | 36 and 16 | Drop extra copies | Proposed |
-| Credits and metadata duplicate ids (conflicting) | 7 and 13 | Inspect, then decide which copy wins | To investigate |
-| Split metadata records | 3 records (6 rows) | Repair or drop, always as stub plus tail | Decision pending |
-| Budget and revenue zeros | 80.44% and 83.69% | Treat as unknown (NaN) | Proposed |
-| Runtime zeros | 1,558 | Treat as unknown, flag high values, never cap | Proposed |
-| Empty-list fields | up to 31.87% | Treat as unknown or none, depending on the field | Proposed |
-| IMDb id format mismatch | all rows | Normalise to `tt` plus 7 digits | Proposed |
-| `homepage` stale | 82.88% missing, rest outdated | Ignore the field | Proposed |
-| `_small` files are samples with renumbered users | 99.67% of rating combinations match | Use full files as the source of truth; never mix `userId` across files | Proposed |
+| Keywords duplicate rows (identical) | 985 ids | Drop extra copies | Decided (C03) |
+| Credits and metadata duplicate ids (identical) | 36 and 16 | Drop extra copies | Decided (C04, C06) |
+| Credits duplicate ids (conflicting) | 7 | Parse and compare `crew`, then decide | Your call (C05) |
+| Metadata duplicate ids (conflicting) | 13 | Keep the higher `vote_count` | Proposed (C07) |
+| Split metadata records | 3 records (6 rows) | Repair (cause confirmed in the raw file) | Decided (C01) |
+| Budget zeros and tiny budgets | 80.44% zeros, 245 below 1,000 | Treat as unknown | Your call (C18) |
+| Revenue zeros | 83.69% | Treat as unknown. Tiny-value threshold still to be chosen. | Pending (C19) |
+| Runtime zeros and long runtimes | 1,558 zeros, 108 above 300 | Zeros unknown, flag long runtimes, never cap | Decided (C21) |
+| Empty-list fields | up to 31.87% | Treat as unknown or none, depending on the field | Decided (C24) |
+| IMDb id format mismatch | all rows | Normalise to `tt` plus 7 digits | Decided (C15) |
+| `homepage` stale | 82.88% missing, rest outdated | Ignore the field | Proposed (C28) |
+| `_small` files are samples with renumbered users | 99.67% of rating combinations match | Use full files as the source of truth; never mix `userId` across files | Decided (C29) |
 
 ### 4. Fields to trust, transform, or ignore (summary)
 
 - **Trust:** `title`, `original_title`, `overview`, `original_language`, `rating`, `userId`.
-- **Transform:** every list or dict field (parse), `id`, `imdb_id`, `release_date`, `status`, `adult`, `video`, `popularity`, `budget`, `revenue`, `vote_count`, `timestamp`.
-- **Investigate:** `runtime` over 300 (these are real long series; flag, do not drop) and tiny positive revenues.
+- **Transform:** every list or dict field (parse), `id`, `imdb_id`, `release_date`, `status`, `adult`, `video`, `budget`, `revenue`, `vote_count`, `timestamp`.
+- **Investigate:** `runtime` over 300 (these are real long series; flag, do not drop), `popularity` (a time-varying snapshot), `ratings_small.userId` (do not mix) and tiny positive revenues.
 - **Treat 0 as missing:** `vote_average` (2,899 placeholders plus 99 suspect zeros), `budget` below 1,000 (proposed), and `imdb_id` equal to `'0'`.
 - **Ignore:** `homepage`, `poster_path`.
 

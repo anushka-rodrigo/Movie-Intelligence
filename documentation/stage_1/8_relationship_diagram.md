@@ -60,7 +60,7 @@ If your viewer does not render Mermaid, use the plain-text version below.
         TMDB id system                                   MovieLens id system
  ┌───────────────────────────┐                      ┌───────────────────────┐
  │ MOVIES_METADATA           │   1 : 0..many        │ LINKS  (the bridge)   │
- │ id  (PK, TMDB)            │◄─────────────────────│ movieId (PK, MovieLens)│
+ │ id  (PK, TMDB)            │◄─────────────────────│ movieId (MovieLens PK)│
  │ imdb_id                   │   id = tmdbId        │ tmdbId  (FK, nullable)│
  └───────────────────────────┘                      │ imdbId                │
         │ 1 : 0..1      │ 1 : 0..1                  └───────────────────────┘
@@ -149,4 +149,3 @@ This is why a **keyword shared by many movies is normal**, while the **same movi
 - `links_small` agrees with `links` on all 9,115 shared ids.
 - `ratings_small` is a sample of `ratings` (99.67% of its distinct combinations match) with users renumbered.
 - The project uses the full files (C29). Never combine `userId` values across the two files.
-

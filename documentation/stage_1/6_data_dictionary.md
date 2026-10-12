@@ -4,9 +4,9 @@
 **Stage:** 1, Understand the Raw Data
 **Dataset:** The Movies Dataset (Kaggle, rounakbanik): https://www.kaggle.com/datasets/rounakbanik/the-movies-dataset
 **Last updated:** 2026-10-11
-**Companion documents:** `4_metadata_summary.md` (data-quality report with all counts), `5_stage1_data_understanding_qa.md` (reasoning), `7_cleaning_decisions.md` (what we do about each problem)
+**Companion documents:** `4_metadata_summary.md` (data-quality report with all counts), `5_data_investigation_qa.md` (reasoning), `7_cleaning_decisions.md` (what we do about each problem)
 
-> **About the meanings.** The file-level descriptions follow the dataset's Kaggle description (the Kaggle page itself did not load for me, so I used copies of it on other sites). The column-level meanings come from standard TMDB and MovieLens conventions, because the files do not ship with a column guide. Anything I could not confirm from your data is marked **(confirm)**. All counts come from your investigation notebook.
+> **About the meanings.** The file-level descriptions follow the dataset's Kaggle description (the Kaggle page itself did not load when this was written, so the file descriptions come from copies of it on other sites). The column-level meanings come from standard TMDB and MovieLens conventions, because the files do not ship with a column guide. Anything I could not confirm from your data is marked **(confirm)**. All counts come from your investigation notebook.
 
 ---
 

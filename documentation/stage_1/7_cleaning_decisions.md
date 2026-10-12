@@ -3,7 +3,7 @@
 **Project:** Movie Intelligence
 **Stage:** 1, Understand the Raw Data (closing deliverable)
 **Last updated:** 2026-10-11
-**Evidence:** `4_metadata_summary.md` (counts), `5_stage1_data_understanding_qa.md` (reasoning), `6_data_dictionary.md` (column meanings)
+**Evidence:** `4_metadata_summary.md` (counts), `5_data_investigation_qa.md` (reasoning), `6_data_dictionary.md` (column meanings)
 
 > **How to use this list.** Each decision names a problem, the evidence for it, what we do, and why. The **Status** column says how settled it is. Decisions marked **Your call** are judgement calls where you should choose and record your own reasoning, because these are the decisions Stage 2 will rest on. Edit this file as you decide.
 
