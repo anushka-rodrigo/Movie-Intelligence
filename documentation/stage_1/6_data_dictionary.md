@@ -3,10 +3,10 @@
 **Project:** Movie Intelligence
 **Stage:** 1, Understand the Raw Data
 **Dataset:** The Movies Dataset (Kaggle, rounakbanik): https://www.kaggle.com/datasets/rounakbanik/the-movies-dataset
-**Last updated:** 2026-10-11
+**Last updated:** 2026-10-19
 **Companion documents:** `4_metadata_summary.md` (data-quality report with all counts), `5_data_investigation_qa.md` (reasoning), `7_cleaning_decisions.md` (what we do about each problem)
 
-> **About the meanings.** The file-level descriptions follow the dataset's Kaggle description (the Kaggle page itself did not load when this was written, so the file descriptions come from copies of it on other sites). The column-level meanings come from standard TMDB and MovieLens conventions, because the files do not ship with a column guide. Anything I could not confirm from your data is marked **(confirm)**. All counts come from your investigation notebook.
+> **About the meanings.** The file-level descriptions follow the dataset's Kaggle description (the Kaggle page itself did not load when this was written, so the file descriptions come from copies of it on other sites). The column-level meanings come from standard TMDB and MovieLens conventions, because the files do not ship with a column guide.
 
 ---
 
@@ -79,7 +79,7 @@ The Kaggle description says the movie details, credits and keywords come from th
 | `status` | Release status of the movie | object → category | 87 (0.19%) | Released 45,014, Rumored 230, Post Production 98, In Production 20, Planned 15, Canceled 2 | **Transform** |
 | `runtime` | Length in minutes | float64 → float | 263 (0.58%) | 1,558 zeros are unknown (1,821 unknown in total, 4.01%). 108 movies exceed 300 minutes and are real miniseries and documentaries. | **Investigate** (zeros are missing; long runtimes are flagged, not errors) |
 | `budget` | Production budget, in US dollars **(confirm)** | object → numeric | 0 (0.00%) | 36,573 zeros (80.44%) are unknown. 245 positive values are below 1,000 (placeholders such as 1). 3 non-numeric values (corrupted rows). | **Transform** (zero and tiny values are unknown) |
-| `revenue` | Box-office revenue, in US dollars **(confirm)** | float64 → numeric | 6 (0.01%) | 38,052 zeros (83.69%) are unknown. Tiny placeholders such as 1, 3, 5, 100 also appear. | **Transform** (zero and tiny values are unknown) |
+| `revenue` | Box-office revenue, in US dollars **(confirm)** | float64 → numeric | 6 (0.01%) | 38,052 zeros (83.69%) are unknown. 155 positive values are below 1,000 (placeholders such as 1, 3, 5, 100). | **Transform** (zero and tiny values are unknown) |
 | `popularity` | TMDB's popularity score, a number TMDB computes and updates over time | object → float64 | 5 (0.01%) | Non-numeric text from the corrupted rows makes it `object`. It differs between duplicate copies, so it is a snapshot, not a fixed fact. | **Investigate** (use with care) |
 | `vote_average` | Average of TMDB user votes, 0 to 10 | float64 → float | 6 (0.01%) | All 2,899 movies with `vote_count` 0 have average 0.0 (a placeholder). 99 more have 0 with votes (81 of them have a single vote). | **Transform** (0 means missing) |
 | `vote_count` | Number of TMDB user votes | float64 → Int64 | 6 (0.01%) | 2,899 zeros (6.38%) are real: nobody voted. Differs between 2 duplicate pairs (e.g. 143 vs 144). | **Transform** (zeros are real) |
@@ -101,7 +101,7 @@ The Kaggle description says the movie details, credits and keywords come from th
 
 | Column | Meaning | Raw → Target | Missing | Hidden missing and quality notes | Verdict |
 |---|---|---|---:|---|---|
-| `id` | TMDB movie id. **PK** (has repeats) and **FK** to `movies_metadata.id`. | int64 → int64 | 0 (0.00%) | 45,432 unique. 44 extra copies (36 identical ids, 7 differ in `crew`). Id 141971 appears three times. | **Trust** after de-duplication |
+| `id` | TMDB movie id. **PK** (has repeats) and **FK** to `movies_metadata.id`. | int64 → int64 | 0 (0.00%) | 45,432 unique. 44 extra copies (36 identical ids, 7 whose `crew` lists hold the same members in a different order). Id 141971 appears three times. | **Trust** after de-duplication |
 | `cast` | List of actors and their characters | object → list of dicts | 0 (0.00%) | `'[]'` in 2,418 rows (5.32%), meaning unknown | **Transform** (parse) |
 | `crew` | List of crew members and their jobs | object → list of dicts | 0 (0.00%) | `'[]'` in 771 rows (1.70%), meaning unknown | **Transform** (parse) |
 
@@ -185,7 +185,7 @@ These columns are stored as text that looks like a Python list or dict. Parse th
 | `belongs_to_collection` | one dict | typically `id`, `name`, `poster_path`, `backdrop_path` **(confirm)** |
 | `keywords` | list of dicts | typically `id`, `name` **(confirm)** |
 | `cast` | list of dicts | typically `cast_id`, `character`, `credit_id`, `gender`, `id`, `name`, `order`, `profile_path` **(confirm)** |
-| `crew` | list of dicts | typically `credit_id`, `department`, `gender`, `id`, `job`, `name`, `profile_path` **(confirm)** |
+| `crew` | list of dicts | `credit_id`, `department`, `gender`, `id`, `job`, `name`, `profile_path` (confirmed) |
 
 **After parsing, check the type too.** A successful parse only proves the syntax is valid. The 3 corrupted rows put plain numbers into `belongs_to_collection` and `production_countries`, and those numbers "parse" even though they are not a dict or a list.
 
@@ -209,4 +209,4 @@ These need a source outside the files (the TMDB documentation or a spot check on
 1. What exactly does `video` flag? **(confirm)**
 2. Are `budget` and `revenue` always in US dollars? **(confirm)**
 3. Does a missing `belongs_to_collection` mean "not in a collection"? **(confirm)**
-4. What are the exact keys of the `cast`, `crew`, `keywords` and collection dicts? Check after parsing.
+4. What are the exact keys of the `cast`, `keywords` and collection dicts? Check after parsing. (The `crew` keys are confirmed.)

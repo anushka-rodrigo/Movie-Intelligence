@@ -3,7 +3,7 @@
 **Project:** Movie Intelligence
 **Stage:** 1, Understand the Raw Data (investigation and deliverables complete; milestone self-check open)
 **Source:** The Movies Dataset (Kaggle, rounakbanik)
-**Last updated:** 2026-10-11
+**Last updated:** 2026-10-19
 
 > **Where the numbers come from.** Every figure below comes from the pandas investigation notebook (`stage1_data_investigation.ipynb`). Items I have not yet measured are marked **TO VERIFY** and listed in section 10. Nothing marked as a finding is a guess.
 
@@ -90,17 +90,17 @@ Credits: 44 − 37 = 7. Metadata: 30 − 17 = 13. Keywords: 987 − 987 = 0.
 
 **What to do:**
 - *Identical copies* (credits 36, keywords 985, metadata 16): harmless. Keep one, drop the rest.
-- *Conflicting copies* (credits 7, metadata 13): need a decision about which copy wins (measured differences below).
+- *Copies that differ* (credits 7, metadata 13): the credits copies hold the same crew in a different order (keep the first copy, C05), and the metadata copies differ in `popularity` (see below).
 - Some ids appear three times (confirmed): id **141971** in credits (44 extra copies across 43 ids), and ids **141971** and **159849** in keywords (987 extra copies across 985 ids). By the arithmetic (17 fully duplicated metadata rows across 16 identical ids), one metadata id also appears three times; it has not been named.
 
 **Which columns differ in the conflicting copies (measured):**
 
 | Table | Conflicting ids | Columns that differ |
 |---|---:|---|
-| credits | 7 (4912, 69234, 99080, 110428, 132641, 159849, 298721) | `crew` only (the string lengths are identical, so the difference is in content, not size) |
+| credits | 7 (4912, 69234, 99080, 110428, 132641, 159849, 298721) | `crew` only, and only in **order**: parsed and compared, both copies hold exactly the same crew members (4 to 17 each), with no field different |
 | movies_metadata | 13 | `popularity` in all 13; `vote_count` also in 2 (ids 10991 and 15028, e.g. 143 vs 144) |
 
-Four ids (4912, 69234, 110428, 132641) conflict in **both** tables. Fields that change over time (`popularity`, `vote_count`) suggest the copies are **snapshots taken at different times**. Since `vote_count` only grows, the copy with the higher count is the newer one. When only `popularity` differs there is no evidence of which is newer, so a deterministic rule must be chosen and documented.
+Four ids (4912, 69234, 110428, 132641) differ in **both** tables (in credits only by order). Fields that change over time (`popularity`, `vote_count`) suggest the copies are **snapshots taken at different times**. Since `vote_count` only grows, the copy with the higher count is the newer one. When only `popularity` differs there is no evidence of which is newer, so a deterministic rule must be chosen and documented.
 
 ### 4.3 The missing-value puzzle (why "Duplicates" never matched)
 
@@ -245,7 +245,7 @@ All 8 columns parse with **no failures**, but they are Python-style text (single
 | `meta.vote_count` | `0` | 2,899 | 6.38 | **Real observation** (no one voted) |
 | `meta.imdb_id` | `'0'` | at least 1 | n/a | Placeholder for unknown (not a valid IMDb id) |
 
-**Consequence:** averages of `budget` or `revenue`, and ROI (`revenue / budget`), are meaningless until zeros are treated as unknown. Dividing by a zero budget produces infinity. The usable sample for financial analysis is the set of movies with **both** budget and revenue greater than 0: **5,381 movies (11.84%)**. The 15 smallest positive budgets are all exactly **1.0**, which cannot be a dollar amount, so "greater than 0" is not a sufficient test. Positive budgets by size (measured): **25** are below 2, **79** below 10, **138** below 100, **245** below 1,000, **300** below 10,000, and **554** below 100,000. The most common real budgets are round figures (5,000,000 is the most frequent). Sample rows show the problem: *Modern Times* (1936) has budget 1 and revenue 8,500,000, and *Aquí Entre Nos* has budget 1 and revenue 2,755,584. **Revenue has the same problem**: tiny revenues such as 1, 3, 5 and 100 appear (e.g. *Saamy*, *East of Eden*). Proposed rule (to confirm): treat budgets below 1,000 as unknown, and apply an equivalent check to revenue (count pending).
+**Consequence:** averages of `budget` or `revenue`, and ROI (`revenue / budget`), are meaningless until zeros are treated as unknown. Dividing by a zero budget produces infinity. The usable sample for financial analysis is the set of movies with **both** budget and revenue greater than 0: **5,381 movies (11.84%)**. The 15 smallest positive budgets are all exactly **1.0**, which cannot be a dollar amount, so "greater than 0" is not a sufficient test. Positive budgets by size (measured): **25** are below 2, **79** below 10, **138** below 100, **245** below 1,000, **300** below 10,000, and **554** below 100,000. The most common real budgets are round figures (5,000,000 is the most frequent). Sample rows show the problem: *Modern Times* (1936) has budget 1 and revenue 8,500,000, and *Aquí Entre Nos* has budget 1 and revenue 2,755,584. **Revenue has the same problem**: tiny revenues such as 1, 3, 5 and 100 appear (e.g. *Saamy*, *East of Eden*). Rule (C18, C19): treat budgets below 1,000 as unknown, and treat revenues the same way. **Revenue (measured):** 7,408 positive values, of which **155** are below 1,000 (12 are exactly 1), **238** below 10,000 and **581** below 100,000. Of the 155, 16 sit next to a budget of 1,000 or more, 44 next to a tiny budget, and 95 next to a budget of 0. With both thresholds, the usable financial sample is **5,312 movies (11.68%)**.
 
 ---
 
@@ -385,8 +385,8 @@ TMDB is the backbone key because `credits` and `keywords` only carry it. IMDb is
 | 3 | Do the TMDB and IMDb paths agree? | **Done:** 45,322 of 45,387 agree (99.86%) |
 | 4 | Do shared `movieId` values in `links` and `links_small` agree? | **Done:** all 9,115 agree |
 | 5 | Movies with `runtime` over 300 | **Done:** 108, mostly miniseries and documentaries |
-| 6 | Inspect the conflicting duplicate ids | **Done:** credits differ in `crew`; metadata in `popularity` (and `vote_count` for 2). Keep-rule goes in the cleaning decisions. |
-| 7 | Movies with both budget and revenue above 0 | **Done:** 5,381 (11.84%) |
+| 6 | Inspect the conflicting duplicate ids | **Done:** credits differ only in crew order (same members); metadata in `popularity` (and `vote_count` for 2). Keep-rules recorded as C05 and C07. |
+| 7 | Movies with both budget and revenue above 0 | **Done:** 5,381 (11.84%) with both above 0; 5,312 (11.68%) with both at least 1,000 |
 | 8 | `vote_average` when `vote_count` is 0 | **Done:** always 0.0, a placeholder |
 | 9 | Split-record details | **Done:** 6 missing titles and the 9-column shift confirmed for all 3 records |
 | 10 | Triple-id cases | **Done:** 141971 (credits, keywords) and 159849 (keywords) |
@@ -395,5 +395,5 @@ TMDB is the backbone key because `credits` and `keywords` only carry it. IMDb is
 | 13 | `vote_count` of the 99 movies with `vote_average` 0 and votes | **Done:** 81 have exactly 1 vote, maximum 58 |
 | 14 | Do `ratings_small` rows match `ratings` without `userId`? | **Done:** 99.67% match; 99.25% of users map to one full user |
 | 15 | Raw lines of the split records (confirm the line-break-in-overview cause) | **Done:** confirmed, an unquoted overview containing a line break |
-| 16 | Revenue counterpart of the tiny-budget check (count of tiny positive revenues) | Pending |
+| 16 | Revenue counterpart of the tiny-budget check | **Done:** 155 positive revenues below 1,000, 238 below 10,000, 581 below 100,000; 16 of the 155 sit next to a budget of 1,000 or more. Threshold 1,000 (C19). |
 | 17 | Why Excel showed 45,505 rows for `credits` (the file has 45,477 physical lines) | Unresolved, low priority |

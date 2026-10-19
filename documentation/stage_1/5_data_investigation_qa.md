@@ -36,7 +36,7 @@
 | Table | What the duplication is | Action |
 |---|---|---|
 | keywords | 985 ids repeat and **all** copies are identical. Pure redundancy. | Keep one copy, drop the rest. |
-| credits | 36 ids are identical copies. **7 ids conflict.** | Drop identical extras. Inspect the 7 and decide which copy wins. |
+| credits | 36 ids are identical copies. **7 ids look different** by exact text comparison. | Drop identical extras. The 7 were later parsed and compared: same crew, different order, so keep the first copy (C05). |
 | movies_metadata | 16 ids are identical copies. **13 ids conflict.** | Drop identical extras. Inspect the 13 and decide which copy wins. |
 
 **Reasoning**
@@ -202,7 +202,7 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 - The number that matters is **how many movies have both budget and revenue above 0**. That is the usable sample for any financial analysis. **Measured: 5,381 movies (11.84%).**
 - The 15 smallest positive budgets are all exactly **1.0**, which cannot be a dollar amount. "Above 0" is therefore not enough.
 - **Measured:** 25 positive budgets are below 2, 79 below 10, 245 below 1,000, 300 below 10,000, and 554 below 100,000. Real budgets are round figures such as 5,000,000. *Modern Times* (1936) shows budget 1 with revenue 8,500,000, so the 1 is a placeholder. Revenue has tiny placeholders too (1, 3, 5, 100).
-- **Proposed rule (to confirm):** treat budgets below 1,000 as unknown, and apply a similar check to revenue.
+- **Rule (C18, C19):** treat budgets and revenues below 1,000 as unknown (revenue: 155 values below 1,000, 238 below 10,000). With both thresholds the usable sample is 5,312 movies (11.68%).
 - Also check the smallest positive budgets. A budget of 7 is probably not 7 dollars.
 
 > **Your first answer:** *Needs work.* Right direction, but no mechanism and no numbers.
@@ -388,13 +388,13 @@ These ten questions came from the follow-up notebook outputs. The answers below 
 
 **Question:** why can two crew strings have the same length but different content? What do the differing columns suggest? What keep-rule would you use for metadata? Why did the metadata comparison not display?
 
-**Answer:** Same-length strings can hold different names, so compare **parsed** lists, not text length. `popularity` and `vote_count` change over time, so the copies are snapshots taken at different times. Rule: keep the copy with the **higher `vote_count`** (it only grows), and use a documented deterministic tie-break when only `popularity` differs. Jupyter displays only the **last expression** in a cell, so the first one was never shown.
+**Answer:** Same-length strings can hold different names, so compare **parsed** lists, not text length. **Checked:** all 7 credits pairs hold exactly the same crew members (4 to 17 each) in a different order, with no field changed, so they are not real conflicts. Keep the first copy (C05). `popularity` and `vote_count` change over time, so the copies are snapshots taken at different times. Rule: keep the copy with the **higher `vote_count`** (it only grows), and use a documented deterministic tie-break when only `popularity` differs. Jupyter displays only the **last expression** in a cell, so the first one was never shown.
 
 ### R2.5: Budget and revenue
 
 **Question:** what does a budget of exactly 1 mean, and what extra check would you add?
 
-**Answer:** A budget is a dollar amount, so 1 is a **placeholder for unknown**, not a flag. "Above 0" is not enough. **Measured:** 245 positive budgets are below 1,000 and 300 below 10,000, and the sample rows (for example *Modern Times* with budget 1) show these are placeholders. A defensible threshold is 1,000, with a similar check for revenue. The 5,381-movie sample is usable for budget and ROI questions but is probably skewed toward well-documented films.
+**Answer:** A budget is a dollar amount, so 1 is a **placeholder for unknown**, not a flag. "Above 0" is not enough. **Measured:** 245 positive budgets are below 1,000 and 300 below 10,000, and the sample rows (for example *Modern Times* with budget 1) show these are placeholders. A defensible threshold is 1,000. **Revenue (measured):** 155 positive values are below 1,000, 238 below 10,000, and 16 of the 155 sit next to a budget of 1,000 or more, so the threshold is 1,000 for both (C18, C19). The usable sample becomes 5,312 movies (11.68%). The 5,381-movie sample is usable for budget and ROI questions but is probably skewed toward well-documented films.
 
 ### R2.6: The small files
 
@@ -462,11 +462,11 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 |---|---:|---|---|
 | Keywords duplicate rows (identical) | 985 ids | Drop extra copies | Decided (C03) |
 | Credits and metadata duplicate ids (identical) | 36 and 16 | Drop extra copies | Decided (C04, C06) |
-| Credits duplicate ids (conflicting) | 7 | Parse and compare `crew`, then decide | Your call (C05) |
-| Metadata duplicate ids (conflicting) | 13 | Keep the higher `vote_count` | Proposed (C07) |
+| Credits duplicate ids (differ by crew order only) | 7 | Keep the first copy | Decided (C05) |
+| Metadata duplicate ids (conflicting) | 13 | Keep the higher `vote_count`, first copy on a tie | Decided (C07) |
 | Split metadata records | 3 records (6 rows) | Repair (cause confirmed in the raw file) | Decided (C01) |
-| Budget zeros and tiny budgets | 80.44% zeros, 245 below 1,000 | Treat as unknown | Your call (C18) |
-| Revenue zeros | 83.69% | Treat as unknown. Tiny-value threshold still to be chosen. | Pending (C19) |
+| Budget zeros and tiny budgets | 80.44% zeros, 245 below 1,000 | Treat as unknown | Decided (C18) |
+| Revenue zeros and tiny revenues | 83.69% zeros, 155 below 1,000 | Treat as unknown (below 1,000), flag 1,000 to 10,000 | Decided (C19) |
 | Runtime zeros and long runtimes | 1,558 zeros, 108 above 300 | Zeros unknown, flag long runtimes, never cap | Decided (C21) |
 | Empty-list fields | up to 31.87% | Treat as unknown or none, depending on the field | Decided (C24) |
 | IMDb id format mismatch | all rows | Normalise to `tt` plus 7 digits | Decided (C15) |
@@ -477,7 +477,7 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 
 - **Trust:** `title`, `original_title`, `overview`, `original_language`, `rating`, `userId`.
 - **Transform:** every list or dict field (parse), `id`, `imdb_id`, `release_date`, `status`, `adult`, `video`, `budget`, `revenue`, `vote_count`, `timestamp`.
-- **Investigate:** `runtime` over 300 (these are real long series; flag, do not drop), `popularity` (a time-varying snapshot), `ratings_small.userId` (do not mix) and tiny positive revenues.
+- **Investigate:** `runtime` over 300 (these are real long series; flag, do not drop), `popularity` (a time-varying snapshot), `ratings_small.userId` (do not mix).
 - **Treat 0 as missing:** `vote_average` (2,899 placeholders plus 99 suspect zeros), `budget` below 1,000 (proposed), and `imdb_id` equal to `'0'`.
 - **Ignore:** `homepage`, `poster_path`.
 
@@ -504,6 +504,6 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 
 **Deliverables done:** data-quality report (`4_metadata_summary.md`), data dictionary (`6_data_dictionary.md`), cleaning decisions (`7_cleaning_decisions.md`), relationship diagram (`8_relationship_diagram.md`).
 
-**Optional checks still open:** count the tiny positive revenues, compare the 7 conflicting `crew` lists once parsed, and review the 2 genuine IMDb conflicts and the 59 shared-`tmdbId` movies. These feed Stage 2 decisions rather than blocking Stage 1.
+**Optional checks still open:** review the 2 genuine IMDb conflicts and the 59 shared-`tmdbId` movies. These feed Stage 2 decisions rather than blocking Stage 1.
 
 **Milestone check:** can you explain the two id systems and the join chain without opening the notebook? If yes, Stage 1 is complete.

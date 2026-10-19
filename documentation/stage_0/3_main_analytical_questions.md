@@ -65,16 +65,4 @@
 |---|---|---|
 | S1 | Which features best predict revenue, and how accurate can a simple model be? | Linear regression, Random Forest, gradient boosting; watch for leakage |
 
----
 
-## Next step: prioritize
-
-The list above is deliberately larger than needed. Pick roughly **8 to 12** questions to commit to:
-
-- 2 to 3 per area
-- At least 2 to 3 from Recommendation (a must-have)
-- Mark each as **Essential** or **Optional**
-
-| Selected? | Question ID | Priority |
-|---|---|---|
-| | | |

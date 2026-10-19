@@ -4,7 +4,7 @@
 **Dataset:** The Movies Dataset (Kaggle, rounakbanik): https://www.kaggle.com/datasets/rounakbanik/the-movies-dataset
 **Stage goal:** understand what we actually have before writing serious code
 **Tools:** Python, pandas, Jupyter
-**Last updated:** 2026-10-11
+**Last updated:** 2026-10-19
 
 ---
 
@@ -13,7 +13,7 @@
 1. **There are seven files and three id systems.** TMDB ids (the backbone), MovieLens ids (used only by ratings), and IMDb ids (a cross-check). `links` is the only table that holds both the MovieLens id and the TMDB id, so it is the bridge.
 2. **Ratings reach movies only through `links`.** The path is `ratings.movieId` → `links.movieId` → `links.tmdbId` → `movies_metadata.id`. A direct join silently loses 83.2% of rated movies and attaches the rest to the wrong film.
 3. **44,741 of 45,115 rated movies (99.17%) can reach metadata**, covering 99.84% of the 26,024,289 ratings.
-4. **The movie tables contain repeated ids.** Credits has 44 extra copies, keywords 987, metadata 30. Most are exact copies. 7 credits ids and 13 metadata ids have conflicting copies.
+4. **The movie tables contain repeated ids.** Credits has 44 extra copies, keywords 987, metadata 30. Most are exact copies. The 7 credits ids whose copies differ hold the same crew in a different order, and 13 metadata ids have copies that differ (in `popularity`, and in `vote_count` for 2).
 5. **3 metadata records are corrupted.** Each is split across two physical rows because an unquoted overview contains a line break. The cause is confirmed, and the repair is deterministic.
 6. **Many fields hide missing values.** Budget is unknown for 80.44% of movies, revenue for 83.69%, and 31.87% of keyword rows are empty lists. Pandas' own missing counts understate this.
 7. **The list and dict columns are Python-style text**, parsed with `ast.literal_eval`, not JSON.
@@ -98,13 +98,13 @@ The 374 lost movies carry only 42,707 ratings (about 114 each, against about 577
 
 ### 4.2 Duplicates
 
-| Table | Extra copies | Repeated ids | Identical | Conflicting | Decision |
+| Table | Extra copies | Repeated ids | Identical | Differ | Decision |
 |---|---:|---:|---:|---:|---|
 | keywords | 987 | 985 | 985 | 0 | Drop extras (C03) |
-| credits | 44 | 43 | 36 | 7 (differ in `crew`) | Drop identical (C04); your call for the 7 (C05) |
+| credits | 44 | 43 | 36 | 7 (same crew, different order) | Drop extras, keep the first copy (C04, C05) |
 | movies_metadata | 30 | 29 | 16 | 13 (differ in `popularity`, 2 also in `vote_count`) | Drop identical (C06); keep higher `vote_count` (C07) |
 
-Ids appearing three times: 141971 (credits and keywords) and 159849 (keywords). By the arithmetic, one metadata id also appears three times; it has not been named. The identity `extra copies − fully duplicated rows = conflicting ids` holds in every table. The conflicting copies look like snapshots taken at different times.
+Ids appearing three times: 141971 (credits and keywords) and 159849 (keywords). By the arithmetic, one metadata id also appears three times; it has not been named. The identity `extra copies − fully duplicated rows = ids whose copies differ` holds in every table. The conflicting copies look like snapshots taken at different times.
 
 ### 4.3 Hidden missing values
 
@@ -126,7 +126,7 @@ Ids appearing three times: 141971 (credits and keywords) and 159849 (keywords). 
 | `crew` | `'[]'` | 771 | 1.70 | Unknown |
 | `imdb_id` | `'0'` | at least 1 | n/a | Placeholder |
 
-Only **5,381 movies (11.84%)** have both budget and revenue above 0, and this will shrink once the placeholder thresholds are applied.
+Only **5,381 movies (11.84%)** have both budget and revenue above 0, and **5,312 (11.68%)** once budget and revenue below 1,000 are treated as missing (C18, C19).
 
 ### 4.4 Types and parsing
 
@@ -169,10 +169,10 @@ The full column-by-column meanings are in `6_data_dictionary.md`.
 
 | Status | Count | Examples |
 |---|---:|---|
-| Decided | 21 | Repair the split records (C01), TMDB as the backbone (C08), never join ratings to metadata directly (C09), `ast.literal_eval` (C26) |
-| Proposed | 6 | Keep the higher `vote_count` (C07), flag shared `tmdbId` movies (C12), `vote_average` 0 as missing (C22) |
-| Your call | 2 | Rule for the 7 conflicting `crew` lists (C05), budget threshold (C18) |
-| Pending | 1 | Revenue threshold (C19) |
+| Decided | 27 | Repair the split records (C01), TMDB as the backbone (C08), never join ratings to metadata directly (C09), order-only crew duplicates (C05), budget and revenue thresholds of 1,000 (C18, C19), `ast.literal_eval` (C26) |
+| Proposed | 3 | Flag IMDb conflicts (C17), leave out `homepage` and `poster_path` (C28), keep `popularity` and `video` as low priority (C30) |
+| Your call | 0 | none left |
+| Pending | 0 | none left |
 
 
 ### Expected row counts after cleaning
@@ -210,7 +210,7 @@ The full column-by-column meanings are in `6_data_dictionary.md`.
 | Data dictionary | **Done** |
 | Data-quality report | **Done** |
 | Relationship diagram | **Done** |
-| List of cleaning decisions | **Done** (2 decisions await your choice, and 1 awaits a count) |
+| List of cleaning decisions | **Done** (27 of 30 decided; 3 low-impact proposals remain: C17, C28, C30) |
 | Clear understanding of ids and joins | **Not yet confirmed.** See section 10. |
 
 ---
@@ -218,14 +218,12 @@ The full column-by-column meanings are in `6_data_dictionary.md`.
 ## 9. Carried into the next stage
 
 **Optional checks (they feed Stage 2 decisions, they do not block Stage 1):**
-1. Count the tiny positive revenues, for the revenue threshold (C19).
-2. Parse and compare the 7 conflicting `crew` lists (C05).
-3. Resolve the 59 shared-`tmdbId` movies and review the 2 genuine IMDb conflicts (C12, C17).
-4. Test why movie 401840 is missing from credits and keywords (hypothesis: added to TMDB after the snapshot).
-5. Check the exact keys inside the `cast`, `crew`, `keywords` and collection fields after parsing.
-6. Explain the Excel count for `credits`, a low priority.
+1. Resolve the 59 shared-`tmdbId` movies and review the 2 genuine IMDb conflicts (C12, C17).
+2. Test why movie 401840 is missing from credits and keywords (hypothesis: added to TMDB after the snapshot).
+3. Check the exact keys inside the `cast`, `keywords` and collection fields after parsing (the `crew` keys are confirmed: `credit_id`, `department`, `gender`, `id`, `job`, `name`, `profile_path`).
+4. Explain the Excel count for `credits`, a low priority.
 
-**Decisions only you can make** (section 9 of `7_cleaning_decisions.md`): the conflicting `crew` rule, the tie-break, the shared-`tmdbId` handling, the budget and revenue thresholds, and the `vote_average` rule.
+**Decisions recorded** (section 9 of `7_cleaning_decisions.md`): all seven are filled in. Three proposals remain open: C17, C28 and C30.
 
 **Unconfirmed meanings** (see the end of `6_data_dictionary.md`): what `video` flags, whether budget and revenue are always US dollars, and what a missing `belongs_to_collection` means.
 
