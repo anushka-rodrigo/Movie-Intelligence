@@ -171,7 +171,7 @@ The full column-by-column meanings are in `6_data_dictionary.md`.
 |---|---:|---|
 | Decided | 27 | Repair the split records (C01), TMDB as the backbone (C08), never join ratings to metadata directly (C09), order-only crew duplicates (C05), budget and revenue thresholds of 1,000 (C18, C19), `ast.literal_eval` (C26) |
 | Proposed | 3 | Flag IMDb conflicts (C17), leave out `homepage` and `poster_path` (C28), keep `popularity` and `video` as low priority (C30) |
-| Your call | 0 | none left |
+| My call | 0 | none left |
 | Pending | 0 | none left |
 
 
@@ -231,15 +231,15 @@ The full column-by-column meanings are in `6_data_dictionary.md`.
 
 ## 10. Closing Stage 1: the milestone self-check
 
-The milestone says you should be able to **explain every dataset and its relationships without looking at the code**. Your first attempt got the TMDB backbone right but placed `ratings` in the wrong id system and named the bridge as an id rather than a table. After review, the correct picture is in section 3 of this document.
+The milestone says I should be able to **explain every dataset and its relationships without looking at the code**. My first attempt got the TMDB backbone right but placed `ratings` in the wrong id system and named the bridge as an id rather than a table. After review, the correct picture is in section 3 of this document.
 
-**Stage 1 is closed when you can answer these three questions from memory, without this document:**
+**Stage 1 is closed when I can answer these three questions from memory, without this document:**
 
 1. Fill in the blanks: `ratings.movieId` is in the ______ id system, `links` holds ______ and ______ side by side, and `movies_metadata.id` is in the ______ id system.
 2. In one or two sentences: why does `ratings.movieId = movies_metadata.id` give *wrong* matches, and not only missing ones?
-3. Trace `movieId` 1 to its movie. Name the two lookups and the number you find at each step.
+3. Trace `movieId` 1 to its movie. Name the two lookups and the number I find at each step.
 
-**Answers** (check yourself after trying):
+**Answers** (to check after trying):
 1. MovieLens; the MovieLens id and the TMDB id; TMDB.
 2. They are two different numbering schemes that share digits by coincidence, so some ids match but point to different films, with no error.
 3. `ratings.movieId` 1 → `links` row `movieId` 1 gives `tmdbId` 862 → `movies_metadata.id` 862 is Toy Story.
@@ -248,11 +248,11 @@ The milestone says you should be able to **explain every dataset and its relatio
 
 ## 11. Lessons about method
 
-1. **State a claim, test it, then record what you found.** Several early claims turned out wrong when tested: that the small files were not samples, that runtime should be capped, and that IMDb ids were more reliable.
+1. **State a claim, test it, then record what was found.** Several early claims turned out wrong when tested: that the small files were not samples, that runtime should be capped, and that IMDb ids were more reliable.
 2. **Joins fail silently.** Check id systems, formats and dtypes before joining, and check row counts after.
 3. **Pandas' missing counts are a floor.** Look for placeholders such as `'[]'`, `0` and `'0'`.
 4. **Judge duplicates at row and key level**, not per column, and separate identical copies from conflicting ones.
 5. **Never fill a gap with a plausible default or a cap.** Flag it, exclude it, or find a second source of evidence.
-6. **A successful parse proves the syntax, not the content.** Check the type of what you parsed.
+6. **A successful parse proves the syntax, not the content.** Check the type of what was parsed.
 7. **Read the numbers and the sample rows before concluding.** The answers to several questions were sitting in the outputs.
 8. **A notebook is only trustworthy if it runs cleanly from the top.** Restart the kernel and run all cells.

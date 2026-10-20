@@ -5,7 +5,7 @@
 **Source:** The Movies Dataset (Kaggle, rounakbanik)
 **Last updated:** 2026-10-19
 
-> **Where the numbers come from.** Every figure below comes from the pandas investigation notebook (`stage1_data_investigation.ipynb`). Items I have not yet measured are marked **TO VERIFY** and listed in section 10. Nothing marked as a finding is a guess.
+> **Where the numbers come from.** Every figure below comes from the pandas investigation notebook (`stage1_data_investigation.ipynb`). Items not yet measured are marked **TO VERIFY** and listed in section 10. Nothing marked as a finding is a guess.
 
 ---
 

@@ -29,7 +29,7 @@
 | keywords | 46,419 | 987 | 985 | 985 | 0 | 987 |
 | movies_metadata | 45,466 | 30 | 29 | 16 | 13 | 17 |
 
-### Q1.1: What kind of duplication is it in each table, and what would you do about it?
+### Q1.1: What kind of duplication is it in each table, and what would I do about it?
 
 **Answer**
 
@@ -43,17 +43,17 @@
 - The question to ask is *what does the repeated thing represent?* A keyword such as "love" appearing in many movies' lists is normal. But what the `keywords` table repeats is the **movie id** itself: the same movie sits in the table twice. A movie cannot be in the table twice, so this is redundancy.
 - Two kinds of repeated id need two different actions. Identical copies are harmless. Conflicting copies need a human decision, because dropping the wrong one loses correct data.
 
-> **Your first answer:** *Needs work.* You described keywords duplication as acceptable because a keyword can belong to many movies. That mixes up two levels: values inside a list, versus rows in the table.
+> **My first answer:** *Needs work.* I described keywords duplication as acceptable because a keyword can belong to many movies. That mixes up two levels: values inside a list, versus rows in the table.
 
-### Q1.2: Which table's duplicates worry you most, and why?
+### Q1.2: Which table's duplicates worry me most, and why?
 
-**Answer:** `movies_metadata` is the table to clean most carefully, because it is the central table that everything else joins to. But **any table you will join** matters, because duplicate ids silently multiply rows.
+**Answer:** `movies_metadata` is the table to clean most carefully, because it is the central table that everything else joins to. But **any table that will be joined** matters, because duplicate ids silently multiply rows.
 
 **Reasoning**
 - Join metadata to a table in which one id appears twice, and that movie appears twice in the result. No error is raised, and later totals and averages count it twice.
-- "Keywords might not be important" is a claim you can check against `2_project_scope.md` and `3_main_analytical_questions.md`. Table importance should be decided from the project questions, not from a hunch.
+- "Keywords might not be important" is a claim that can be checked against `2_project_scope.md` and `3_main_analytical_questions.md`. Table importance should be decided from the project questions, not from a hunch.
 
-> **Your first answer:** *Needs work.* Right instinct about metadata, but the strongest reason (silent row multiplication) was missing.
+> **My first answer:** *Needs work.* Right instinct about metadata, but the strongest reason (silent row multiplication) was missing.
 
 ### Q1.3: Why do "fully duplicated rows" and "extra copies of an id" match in keywords but not in credits or meta?
 
@@ -81,7 +81,7 @@
 
 Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43), and when extra copies exceed ids that repeat, some id appears three or more times. **Confirmed in the notebook:** id 141971 appears three times in credits, and ids 141971 and 159849 appear three times in keywords.
 
-> **Your answer (carry-over):** *Correct.* You said keywords copies are identical and can be dropped, while credits and metadata contain rows that must be viewed or fixed.
+> **My answer (carry-over):** *Correct.* I said keywords copies are identical and can be dropped, while credits and metadata contain rows that must be viewed or fixed.
 
 ---
 
@@ -99,18 +99,18 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 - The shift is exactly 9: the `adult` position (column 0) holds `overview`-tail text, which sits at original position 9. **Confirmed for all three records** by a notebook test that compared every value with the column 9 positions to its right.
 - The stub ends partway through `overview`, and the corrupted row starts with the rest of that overview. The cause is a **line break inside the overview text**, **confirmed in the raw file**: each stub line ends with a line break mid-overview, the next line starts with the rest of the overview, and the overview is not wrapped in quotes, so the parser ends the record there. That explains why the shift is exactly 9.
 
-> **Your first answer:** *Needs work.* You matched the stray values to the correct columns, but the cause you gave ("a scraping error that lost the data") was a guess, and your own Q2.2 answer contradicted it.
+> **My first answer:** *Needs work.* I matched the stray values to the correct columns, but the cause I gave ("a scraping error that lost the data") was a guess, and my own Q2.2 answer contradicted it.
 
-### Q2.2: What do you notice about the row just before each bad row?
+### Q2.2: What do I notice about the row just before each bad row?
 
 **Answer:** It is a **stub**: the first columns (including the real id) are filled and the rest is empty. The stub and the bad row are two halves of **one movie**.
 
 **Reasoning**
 - The stubs have real ids: 82663 (row 19,729), 122662 (row 29,502), and 249260 (row 35,586). The id was never lost; it sits in the stub.
 - The bad row's `release_date` column holds a small number (`1`, `12`). Original position 14 + the 9-column shift = position 23, which is `vote_count`. That matches.
-- Always test a hypothesis against your other findings. Your Q2.1 theory said the id data was missing; the stub shows it is not.
+- Always test a hypothesis against other findings. My Q2.1 theory said the id data was missing; the stub shows it is not.
 
-> **Your answer:** *Correct.* This was your best answer and the real explanation.
+> **My answer:** *Correct.* This was my best answer and the real explanation.
 
 ### Q2.3: How does this one problem explain `id` being a string, `adult` having 5 values, and `popularity` being `object`?
 
@@ -126,7 +126,7 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 
 **Reasoning:** two different causes can produce the same symptom. Do not assume one explanation covers every oddity.
 
-> **Your first answer:** *Needs work.* You named the type problems but not the mechanism.
+> **My first answer:** *Needs work.* I named the type problems but not the mechanism.
 
 ### Q2.4: Repair or drop?
 
@@ -140,9 +140,9 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 **Reasoning**
 - This is **6 physical rows but 3 logical records.** Dropping only the 3 bad-id rows leaves 3 ghost stubs (an id with no title, date, or status).
 - Whatever is chosen goes into the cleaning-decisions list with the row numbers and the reason.
-- **Your pick:** repair if possible, otherwise drop. Acceptable. The raw-line check later confirmed the cause, so the decision is logged as C01 (repair) in the cleaning list.
+- **My pick:** repair if possible, otherwise drop. Acceptable. The raw-line check later confirmed the cause, so the decision is logged as C01 (repair) in the cleaning list.
 
-> **Your first answer:** *Needs work.* One-sided argument, and the stub consequence was missing.
+> **My first answer:** *Needs work.* One-sided argument, and the stub consequence was missing.
 
 ---
 
@@ -164,7 +164,7 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 | meta.runtime | `0` | 1,558 | 3.43 |
 | meta.vote_count | `0` | 2,899 | 6.38 |
 
-### Q3.1: What do the budget and revenue percentages tell you about what a `0` means?
+### Q3.1: What do the budget and revenue percentages tell me about what a `0` means?
 
 **Answer:** Budget is `0` for **80.44%** of movies and revenue for **83.69%**. A zero here means **unknown**, not "free" or "earned nothing".
 
@@ -172,7 +172,7 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 - No real film is made for a budget of 0, so a zero is a placeholder for "no data".
 - The 3 non-numeric budget values are the corrupted rows from Question 2.
 
-> **Your answer:** *Correct.*
+> **My answer:** *Correct.*
 
 ### Q3.2: For each field, is the empty or zero value real information, or a placeholder for unknown?
 
@@ -190,9 +190,9 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 - Do **not** fill unknown spoken languages with English. That invents data and would mislabel every non-English film among the 3,829 rows. Use the evidence in `original_language` instead.
 - `runtime` (1,558 zeros, 4.01% unknown including the 263 NaN) passes the same test as budget.
 
-> **Your first answer:** *Needs work.* You treated every `'[]'` as "data exists but is missing", and the English default is the clearest error.
+> **My first answer:** *Needs work.* I treated every `'[]'` as "data exists but is missing", and the English default is the clearest error.
 
-### Q3.3: What goes wrong if you compute average budget or ROI without handling the zeros?
+### Q3.3: What goes wrong if I compute average budget or ROI without handling the zeros?
 
 **Answer:** The results are distorted, and the distortion has a specific direction and mechanism.
 
@@ -205,7 +205,7 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 - **Rule (C18, C19):** treat budgets and revenues below 1,000 as unknown (revenue: 155 values below 1,000, 238 below 10,000). With both thresholds the usable sample is 5,312 movies (11.68%).
 - Also check the smallest positive budgets. A budget of 7 is probably not 7 dollars.
 
-> **Your first answer:** *Needs work.* Right direction, but no mechanism and no numbers.
+> **My first answer:** *Needs work.* Right direction, but no mechanism and no numbers.
 
 ### Q3.4: Should `vote_count = 0` (2,899 rows) get the same treatment as budget?
 
@@ -216,7 +216,7 @@ Two relationships to remember: identical + differ = ids that repeat (36 + 7 = 43
 - **Checked:** all 2,899 movies with `vote_count` 0 have `vote_average` 0.0. A movie with no votes has no average, so that 0.0 is a **placeholder** and should be treated as missing.
 - A further 99 movies have `vote_average` 0 with `vote_count` above 0. **Inspected:** 81 of them have exactly 1 vote, and the maximum is 58. An average of exactly 0 over many votes is not credible, so these zeros are also suspect. Proposed rule: treat `vote_average` 0 as missing everywhere (2,899 + 99 = 2,998 movies) and flag the 99.
 
-> **Your answer:** *Correct.*
+> **My answer:** *Correct.*
 
 ---
 
@@ -269,7 +269,7 @@ Empty DataFrame              <- meta, looked up with id 1 directly
 
 **Reasoning:** wrong numbers look exactly like right numbers, which makes this worse than lost rows.
 
-> **Your first answer:** *Half right.* You sensed the ids might not map directly, which is the key idea. The silent wrong matches were the part you missed.
+> **My first answer:** *Half right.* I sensed the ids might not map directly, which is the key idea. The silent wrong matches were the part I missed.
 
 ### Q4.3: What chain of joins attaches a rating to a metadata movie, and how much is lost?
 
@@ -293,7 +293,7 @@ Empty DataFrame              <- meta, looked up with id 1 directly
 **Reasoning**
 - Two MovieLens movies sharing one TMDB id get their ratings pooled onto one metadata movie. In the other direction, one metadata movie matches two `movieId` values, its row appears twice, and totals are counted double.
 - `meta.id` has its own 30 extra copies, which cause the same fan-out.
-- **Rule: after every join, compare the row count with what you expected.**
+- **Rule: after every join, compare the row count with what was expected.**
 
 ### Q4.5: Which `meta` movie is missing from `credits` and `keywords`? (take-home)
 
@@ -303,7 +303,7 @@ Empty DataFrame              <- meta, looked up with id 1 directly
 
 ## Question 5: IMDb ids, the small files, and plausibility
 
-### Q5.1: What if you joined the raw IMDb columns? Which key would you trust between `meta` and `links`?
+### Q5.1: What if I joined the raw IMDb columns? Which key would I trust between `meta` and `links`?
 
 **Evidence:** `meta.imdb_id` looks like `tt0114709`; `links.imdbId` looks like `114709`. After rebuilding the `tt` plus 7-digit form: 45,353 match, 64 only in meta, 490 only in links.
 
@@ -322,9 +322,9 @@ Empty DataFrame              <- meta, looked up with id 1 directly
 - "More reliable" is a claim to test. **Test result:** after excluding 59 ambiguous rows per side, 45,387 movies were compared; **45,322 agree and 65 disagree (0.14%)**. TMDB is reliable as the backbone. A disagreement does not say which side is wrong; that needs an external source (the IMDb or TMDB site).
 - **How the 65 relate to the 64 metadata ids missing from `links`:** 63 overlap, so almost all disagreements are metadata `imdb_id` values that `links` has never seen. 2 (`tt0486420`, `tt0785025`) exist in `links` but are attached to a different movie, which is a genuine conflict. The one metadata id missing from `links` that is not a disagreement is the string `'0'`, a placeholder for unknown.
 
-> **Your first answer:** *Needs work* on both parts. "Some values lost" understates the failure, and the choice of IMDb needed the scoreboard to support it.
+> **My first answer:** *Needs work* on both parts. "Some values lost" understates the failure, and the choice of IMDb needed the scoreboard to support it.
 
-### Q5.2: Are the `_small` files samples of the full files, and what do you do with them?
+### Q5.2: Are the `_small` files samples of the full files, and what do I do with them?
 
 **Evidence**
 
@@ -343,7 +343,7 @@ Empty DataFrame              <- meta, looked up with id 1 directly
 - The 0-of-100,004 ratings match was **not safe to interpret**: it included `userId`, which is numbered differently (1 to 671 vs 1 to 270,896). The fair test (without `userId`) matched 99.67%, and 99.25% of small users map to exactly one full user. 333 combinations (0.33%) and 10 `links_small` ids remain unexplained.
 - Check `2_project_scope.md` in case it says otherwise.
 
-> **Your first answer:** *Needs work.* You concluded they are not subsets (the first test seemed to say so), but the "contains missing data" claim was untested and you did not say what to do with them. The later fair test showed the small file is a sample.
+> **My first answer:** *Needs work.* I concluded they are not subsets (the first test seemed to say so), but the "contains missing data" claim was untested and I did not say what to do with them. The later fair test showed the small file is a sample.
 
 ### Q5.3: Plausibility calls: timestamps, runtime zeros, and a runtime cap
 
@@ -360,7 +360,7 @@ Empty DataFrame              <- meta, looked up with id 1 directly
 - The correct process: look at rows above a threshold (say 300 minutes), judge whether the titles are plausible, then **flag or exclude** them for specific analyses. Never silently change them.
 - **Result of that check:** 108 movies exceed 300 minutes. The top ones (Centennial 1,256, Jazz 1,140, Baseball 1,140, Berlin Alexanderplatz 931, Heimat 925) are real TV miniseries and documentary series. They are not errors, and they show the dataset includes more than feature films.
 
-> **Your answers:** timestamps *Correct* (your reasoning used the dataset's age), runtime zeros *Correct*, capping *Wrong*.
+> **My answers:** timestamps *Correct* (my reasoning used the dataset's age), runtime zeros *Correct*, capping *Wrong*.
 
 ## Round 2: Follow-up checks
 
@@ -374,25 +374,25 @@ These ten questions came from the follow-up notebook outputs. The answers below 
 
 ### R2.2: Reachability
 
-**Question:** why were 213 (not 219) movies lost for a missing `tmdbId`? Why is the row-level reach (99.84%) higher than the movie-level reach (99.17%)? Is movie 401840 a corrupted record? What do you do with the 59 shared-`tmdbId` movies?
+**Question:** why were 213 (not 219) movies lost for a missing `tmdbId`? Why is the row-level reach (99.84%) higher than the movie-level reach (99.17%)? Is movie 401840 a corrupted record? What do I do with the 59 shared-`tmdbId` movies?
 
 **Answer:** 6 of the 219 were never rated. The lost movies are rarely rated (about 114 ratings each vs about 577 on average). Movie 401840 is a normal 2017 release, not a corrupted record. For the 59 shared-`tmdbId` movies, compare each pair with the metadata title and `imdb_id` to find the true match, and exclude and flag the ones that cannot be resolved.
 
 ### R2.3: TMDB path vs IMDb path
 
-**Question:** 65 of 45,387 compared movies disagree. What does that say about TMDB as the backbone? How are the 65 related to the 64 missing ids? How do you decide which IMDb id is right?
+**Question:** 65 of 45,387 compared movies disagree. What does that say about TMDB as the backbone? How are the 65 related to the 64 missing ids? How do I decide which IMDb id is right?
 
 **Answer:** The disagreement rate is 0.14%, so TMDB is a reliable backbone. **Tested:** 63 of the 65 disagreeing ids are among the 64 metadata ids missing from `links`; 2 exist in `links` but point to a different movie; the remaining missing id is the placeholder `'0'`. Deciding which id is correct still needs an external source (the IMDb or TMDB site).
 
 ### R2.4: Conflicting duplicates
 
-**Question:** why can two crew strings have the same length but different content? What do the differing columns suggest? What keep-rule would you use for metadata? Why did the metadata comparison not display?
+**Question:** why can two crew strings have the same length but different content? What do the differing columns suggest? What keep-rule would I use for metadata? Why did the metadata comparison not display?
 
 **Answer:** Same-length strings can hold different names, so compare **parsed** lists, not text length. **Checked:** all 7 credits pairs hold exactly the same crew members (4 to 17 each) in a different order, with no field changed, so they are not real conflicts. Keep the first copy (C05). `popularity` and `vote_count` change over time, so the copies are snapshots taken at different times. Rule: keep the copy with the **higher `vote_count`** (it only grows), and use a documented deterministic tie-break when only `popularity` differs. Jupyter displays only the **last expression** in a cell, so the first one was never shown.
 
 ### R2.5: Budget and revenue
 
-**Question:** what does a budget of exactly 1 mean, and what extra check would you add?
+**Question:** what does a budget of exactly 1 mean, and what extra check would I add?
 
 **Answer:** A budget is a dollar amount, so 1 is a **placeholder for unknown**, not a flag. "Above 0" is not enough. **Measured:** 245 positive budgets are below 1,000 and 300 below 10,000, and the sample rows (for example *Modern Times* with budget 1) show these are placeholders. A defensible threshold is 1,000. **Revenue (measured):** 155 positive values are below 1,000, 238 below 10,000, and 16 of the 155 sit next to a budget of 1,000 or more, so the threshold is 1,000 for both (C18, C19). The usable sample becomes 5,312 movies (11.68%). The 5,381-movie sample is usable for budget and ROI questions but is probably skewed toward well-documented films.
 
@@ -422,7 +422,7 @@ These ten questions came from the follow-up notebook outputs. The answers below 
 
 ### R2.10: Notebook hygiene
 
-**Question:** what goes wrong when the same variable names hold different kinds of objects, and how do you prove the notebook runs cleanly?
+**Question:** what goes wrong when the same variable names hold different kinds of objects, and how do I prove the notebook runs cleanly?
 
 **Answer:** Cells that rely on `meta_ids` being a set silently behave differently if it is a Series, so cell order matters. **Restart the kernel and Run All** to prove a clean top-to-bottom run. Give variables distinct names (for example `meta_id_series` and `meta_id_set`), define shared ones once in setup, and add markdown notes.
 
@@ -483,7 +483,7 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 
 ### 5. Lessons about method (for the next stages)
 
-1. **State a claim, test it, then record what you found.** "I checked, and found X" beats "I think X". Three claims in this stage were untested guesses that the data later corrected: IMDb is more reliable, the small files contain missing data, and runtime should be capped.
+1. **State a claim, test it, then record what was found.** "I checked, and found X" beats "I think X". Three claims in this stage were untested guesses that the data later corrected: IMDb is more reliable, the small files contain missing data, and runtime should be capped.
 2. **Joins fail silently.** Check id systems, formats, and dtypes before joining, then check row counts after.
 3. **Pandas' missing counts are a floor, not the truth.** Look for placeholders such as `'[]'` and `0`.
 4. **Duplicates must be judged at row and key level**, not per column.
@@ -506,4 +506,4 @@ Correct join chain: `ratings.movieId` → `links.movieId` → `links.tmdbId` →
 
 **Optional checks still open:** review the 2 genuine IMDb conflicts and the 59 shared-`tmdbId` movies. These feed Stage 2 decisions rather than blocking Stage 1.
 
-**Milestone check:** can you explain the two id systems and the join chain without opening the notebook? If yes, Stage 1 is complete.
+**Milestone check:** can I explain the two id systems and the join chain without opening the notebook? If yes, Stage 1 is complete.

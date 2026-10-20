@@ -18,6 +18,7 @@
 | **Missing** | Cells pandas sees as empty (NaN), with the percentage of rows |
 | **Hidden missing** | Cells that look filled but carry no information, such as `'[]'`, `0`, or a placeholder value |
 | **PK / FK** | Primary key (should identify one row) / foreign key (points to another table's key) |
+| **(confirm)** | A meaning taken from TMDB conventions that the data itself cannot confirm |
 
 **Verdicts**
 
@@ -155,7 +156,7 @@ The small files are not needed for the project (see `7_cleaning_decisions.md`).
 | `rating` | The user's star rating | float64 → float32 | 0 (0.00%) | 10 distinct values, 0.5 to 5.0 in steps of 0.5 | **Trust** |
 | `timestamp` | When the rating was made, as Unix seconds | int64 → datetime | 0 (0.00%) | 1995-01-09 to 2017-08-04 | **Transform** |
 
-**Note:** the Kaggle description says ratings run from 1 to 5, but your data has a minimum of **0.5**, so the description and the data disagree. The data is what we trust.
+**Note:** the Kaggle description says ratings run from 1 to 5, but my data has a minimum of **0.5**, so the description and the data disagree. The data is what we trust.
 
 ---
 
@@ -176,7 +177,7 @@ The small files are not needed for the project (see `7_cleaning_decisions.md`).
 
 These columns are stored as text that looks like a Python list or dict. Parse them with **`ast.literal_eval`** (not `json.loads`): the cells use single quotes, and all non-empty cells parsed with 0 failures.
 
-| Column | After parsing | Keys seen in your data |
+| Column | After parsing | Keys seen in my data |
 |---|---|---|
 | `genres` | list of dicts | `id`, `name` |
 | `production_companies` | list of dicts | `name`, `id` |

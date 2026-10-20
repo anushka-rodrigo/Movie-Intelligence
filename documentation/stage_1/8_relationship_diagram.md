@@ -5,7 +5,7 @@
 **Last updated:** 2026-10-11
 **Evidence:** `4_metadata_summary.md` (counts), `6_data_dictionary.md` (columns), `7_cleaning_decisions.md` (decisions C01 to C30)
 
-> **How to read this.** The diagram describes the tables **after** the cleaning decisions are applied (duplicates removed, split records repaired). Where the raw data breaks a relationship, the exception is listed with its count. Every number comes from your notebook outputs.
+> **How to read this.** The diagram describes the tables **after** the cleaning decisions are applied (duplicates removed, split records repaired). Where the raw data breaks a relationship, the exception is listed with its count. Every number comes from my notebook outputs.
 
 ---
 
@@ -50,7 +50,7 @@ erDiagram
     }
 ```
 
-If your viewer does not render Mermaid, use the plain-text version below.
+If the viewer does not render Mermaid, use the plain-text version below.
 
 ---
 
