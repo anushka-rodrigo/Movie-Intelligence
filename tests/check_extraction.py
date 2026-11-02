@@ -1,4 +1,4 @@
-from src.scripts.stage2_extract_data import extract_data
+from src.scripts.stage2_modules.stage2_extract_data import extract_data
 
 tables = extract_data()
 

@@ -1,8 +1,8 @@
 import logging
 
 from config.logging_config import setup_logging
-from src.scripts.stage2_extract_data import extract_data
-from src.scripts.stage2_fingerprint_data import (
+from src.scripts.stage2_modules.stage2_extract_data import extract_data
+from scripts.stage2_modules.stage2_fingerprint_data import (
     fingerprint_raw_data,
     save_or_verify_fingerprints,
 )

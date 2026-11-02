@@ -1,4 +1,4 @@
-from src.scripts.stage2_fingerprint_data import (
+from scripts.stage2_modules.stage2_fingerprint_data import (
     fingerprint_raw_data,
     save_or_verify_fingerprints,
 )
