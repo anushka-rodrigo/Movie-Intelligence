@@ -24,7 +24,9 @@ Python, SQL, PostgreSQL, pandas, NumPy, SciPy, statsmodels, scikit-learn, FastAP
 
 ## Status
 
-🚧 Early stage: defining scope and exploring the raw data.
+🚧 Currently in Stage 2: Build the ETL Pipeline
+
+The project has completed its initial raw-data exploration (Stage 1) and is now building a reproducible ETL pipeline.
 
 ## Repository notes
 
