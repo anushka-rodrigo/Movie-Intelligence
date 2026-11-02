@@ -36,3 +36,7 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# Python cache files
+__pycache__/
+*.py[cod]
