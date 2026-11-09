@@ -10,7 +10,10 @@ A column such as `genres` looks like a list but is really one long piece of text
 
 Text cannot be counted, grouped or searched by genre. This step turns it into real Python lists and dictionaries.
 
-Functions: `parse_literal_column()` and `parse_list_columns()` in `stage2_clean_metadata.py`.
+Functions:
+
+- `parse_literal_column()` in `src/scripts/stage2_modules/stage2_helpers.py`. It is shared by every table that has list-like text (metadata, credits, keywords).
+- `parse_list_columns()` in `stage2_clean_metadata.py`. It applies the shared function to the five metadata columns.
 
 ## 2. Which columns
 
@@ -22,7 +25,7 @@ Functions: `parse_literal_column()` and `parse_list_columns()` in `stage2_clean_
 | `spoken_languages` | list of dictionaries | `[]` = unknown, never filled in as English |
 | `belongs_to_collection` | one dictionary | missing = the movie is not in a collection |
 
-The other three Python-style columns, `cast`, `crew` and `keywords`, are in other tables and use the same function in Phase C.
+The other three Python-style columns, `cast`, `crew` and `keywords`, are in other tables and use the same shared function in Phase C.
 
 ## 3. Two rules from the cleaning decisions
 
@@ -31,11 +34,13 @@ The other three Python-style columns, `cast`, `crew` and `keywords`, are in othe
 
 ## 4. The code
 
+The shared function, in `stage2_helpers.py`:
+
 ```python
 import ast
+import logging
 
-LIST_COLUMNS = ["genres", "production_companies", "production_countries", "spoken_languages"]
-DICT_COLUMNS = ["belongs_to_collection"]
+import pandas as pd
 
 
 def parse_literal_column(series, expected_type, column_name):
@@ -58,6 +63,15 @@ def parse_literal_column(series, expected_type, column_name):
         return parsed
 
     return series.apply(parse_cell)
+```
+
+The metadata step, in `stage2_clean_metadata.py`:
+
+```python
+from src.scripts.stage2_modules.stage2_helpers import parse_literal_column
+
+LIST_COLUMNS = ["genres", "production_companies", "production_countries", "spoken_languages"]
+DICT_COLUMNS = ["belongs_to_collection"]
 
 
 def parse_list_columns(meta):
@@ -69,6 +83,7 @@ def parse_list_columns(meta):
     for column in DICT_COLUMNS:
         meta[column] = parse_literal_column(meta[column], dict, column)
 
+    logger.info("parse_list_columns: parsed %s columns.", len(LIST_COLUMNS) + len(DICT_COLUMNS))
     return meta
 ```
 
@@ -78,7 +93,7 @@ How it works:
 - A genuinely missing cell stays missing, so the movies with no collection are "no collection", not an empty dictionary.
 - Empty lists stay as empty lists. C24 says to keep them and treat them as unknown during analysis, not to delete them.
 - Either failure raises an error showing the first 80 characters of the culprit, so the pipeline stops instead of continuing quietly.
-- `parse_literal_column` is reusable for `cast`, `crew` and `keywords`.
+- Because the function lives in the helpers file, it is also used for `cast` and `crew` in the credits step, and will be used for `keywords`.
 
 ## 5. The cleaning wrapper
 
