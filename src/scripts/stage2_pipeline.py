@@ -2,10 +2,11 @@ import logging
 
 from config.logging_config import setup_logging
 from src.scripts.stage2_modules.stage2_extract_data import extract_data
-from scripts.stage2_modules.stage2_fingerprint_data import (
+from src.scripts.stage2_modules.stage2_fingerprint_data import (
     fingerprint_raw_data,
     save_or_verify_fingerprints,
 )
+from src.scripts.stage2_modules.stage2_clean_metadata import clean_movies_metadata
 
 
 def main():
@@ -39,6 +40,17 @@ def main():
                 dataframe.shape[0],
                 dataframe.shape[1],
             )
+
+        # Step 4: Clean movies_metadata
+        logger.info("Starting movies_metadata cleaning.")
+
+        clean_metadata = clean_movies_metadata(tables["movies_metadata"])
+
+        logger.info(
+            "movies_metadata cleaning completed: %s rows -> %s rows.",
+            len(tables["movies_metadata"]),
+            len(clean_metadata),
+        )
 
         logger.info("Stage 2 ETL pipeline completed successfully.")
 
