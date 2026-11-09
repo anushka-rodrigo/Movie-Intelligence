@@ -115,8 +115,70 @@ def remove_duplicate_movies(meta):
     logger.info("remove_duplicate_movies: %s rows -> %s rows.", rows_before, len(kept))
     return kept
 
+def _convert_checked(series, converter, column_name):
+    """Convert a column, and stop if any real value turned into 'missing'."""
+    missing_before = series.isna().sum()
+    converted = converter(series)
+    newly_missing = converted.isna().sum() - missing_before
+
+    if newly_missing != 0:
+        culprits = series[converted.isna() & series.notna()].unique()[:5]
+        raise ValueError(
+            f"{column_name}: {newly_missing} values could not be converted, "
+            f"for example {list(culprits)}"
+        )
+    return converted
+
+
+def _to_bool(series, column_name):
+    """Convert 'True'/'False' text to real booleans, and stop on anything else."""
+    mapping = {"True": True, "False": False, True: True, False: False}
+    converted = series.map(mapping)
+
+    if converted.isna().any():
+        culprits = series[converted.isna()].unique()[:5]
+        raise ValueError(f"{column_name}: unexpected values {list(culprits)}")
+    return converted.astype(bool)
+
+
+def fix_data_types(meta):
+    """C27: give every column its proper data type."""
+    meta = meta.copy()
+
+    # Decimal numbers
+    for column in ["popularity", "budget", "revenue", "runtime", "vote_average"]:
+        meta[column] = _convert_checked(
+            meta[column], lambda s: pd.to_numeric(s, errors="coerce"), column
+        )
+
+    # Whole numbers that are allowed to have gaps
+    for column in ["id", "vote_count"]:
+        numbers = _convert_checked(
+            meta[column], lambda s: pd.to_numeric(s, errors="coerce"), column
+        )
+        meta[column] = numbers.astype("Int64")
+
+    # True / False columns
+    for column in ["adult", "video"]:
+        meta[column] = _to_bool(meta[column], column)
+
+    # Labels from a small fixed set
+    for column in ["status", "original_language"]:
+        meta[column] = meta[column].astype("category")
+
+    # Dates
+    meta["release_date"] = _convert_checked(
+        meta["release_date"],
+        lambda s: pd.to_datetime(s, format="%Y-%m-%d", errors="coerce"),
+        "release_date",
+    )
+
+    logger.info("fix_data_types: converted types for %s rows.", len(meta))
+    return meta
+
 def clean_movies_metadata(meta):
     """Run every metadata cleaning step in order."""
     meta = repair_split_records(meta)
     meta = remove_duplicate_movies(meta)
+    meta = fix_data_types(meta)
     return meta
