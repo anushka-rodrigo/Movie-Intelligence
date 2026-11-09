@@ -1,6 +1,7 @@
 import logging
 
 import pandas as pd
+import ast
 
 logger = logging.getLogger(__name__)
 
@@ -230,10 +231,49 @@ def clean_placeholders(meta):
 
     return meta
 
+LIST_COLUMNS = ["genres", "production_companies", "production_countries", "spoken_languages"]
+DICT_COLUMNS = ["belongs_to_collection"]
+
+
+def parse_literal_column(series, expected_type, column_name):
+    """Turn Python-style text into real lists/dicts, and check each result's type."""
+
+    def parse_cell(value):
+        if pd.isna(value):
+            return None                      # genuinely missing stays missing
+
+        try:
+            parsed = ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            raise ValueError(f"{column_name}: cannot parse {str(value)[:80]!r}")
+
+        if not isinstance(parsed, expected_type):
+            raise ValueError(
+                f"{column_name}: expected {expected_type.__name__}, "
+                f"got {type(parsed).__name__} for {str(value)[:80]!r}"
+            )
+        return parsed
+
+    return series.apply(parse_cell)
+
+def parse_list_columns(meta):
+    """C26: parse the Python-style text columns into real lists and dictionaries."""
+    meta = meta.copy()
+
+    for column in LIST_COLUMNS:
+        meta[column] = parse_literal_column(meta[column], list, column)
+
+    for column in DICT_COLUMNS:
+        meta[column] = parse_literal_column(meta[column], dict, column)
+
+    logger.info("parse_list_columns: parsed %s columns.", len(LIST_COLUMNS) + len(DICT_COLUMNS))
+    return meta
+
 def clean_movies_metadata(meta):
     """Run every metadata cleaning step in order."""
     meta = repair_split_records(meta)
     meta = remove_duplicate_movies(meta)
     meta = fix_data_types(meta)
     meta = clean_placeholders(meta)
+    meta = parse_list_columns(meta)
     return meta
