@@ -63,7 +63,7 @@ These apply to every decision below.
 | C13 | Metadata movie 401840 ("School's out", 2017) is missing from `credits` and `keywords`. | Join from metadata with **left joins** to `credits` and `keywords`. Keep 401840 with empty cast, crew and keywords. | An inner join would silently drop a real movie. | **Decided** |
 | C14 | Joins can multiply or drop rows without any error. | After every join, assert the row count and the uniqueness of the key. | This is how the shared-id problem is caught. | **Decided** |
 | C15 | `imdb_id` is `tt0114709` in metadata and `114709` in `links`. A raw join matches nothing. | Normalise `links.imdbId` to the form `tt` plus 7 digits. Use the IMDb id only as a **cross-check**. | The TMDB id is the backbone, and `meta.imdb_id` has 17 missing and 32 repeated values. | **Decided** |
-| C16 | At least one `meta.imdb_id` is the string `'0'`. | Convert `'0'` to missing. | It is a placeholder, not a valid id. | **Decided** |
+| C16 | At least one `meta.imdb_id` is the string `'0'`. (Resolved by C01: the three '0') | Convert `'0'` to missing. | It is a placeholder, not a valid id. | **Decided** |
 | C17 | 65 movies have an IMDb id that disagrees with `links`. 63 are ids that `links` has never seen. 2 (`tt0486420`, `tt0785025`) exist in `links` but point to another movie. | Keep the TMDB path as the truth. Add a flag column `imdb_conflict`. Review the 2 genuine conflicts by hand against the IMDb or TMDB site. | A disagreement does not show which side is wrong, and the rate is only 0.14%. | **Proposed** |
 
 ---
