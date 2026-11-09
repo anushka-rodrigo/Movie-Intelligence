@@ -145,11 +145,12 @@ def fix_data_types(meta):
     """C27: give every column its proper data type."""
     meta = meta.copy()
 
-    # Decimal numbers
+    # Decimal numbers (float64 so that they can hold "missing" values later)
     for column in ["popularity", "budget", "revenue", "runtime", "vote_average"]:
-        meta[column] = _convert_checked(
+        numbers = _convert_checked(
             meta[column], lambda s: pd.to_numeric(s, errors="coerce"), column
         )
+        meta[column] = numbers.astype("float64")
 
     # Whole numbers that are allowed to have gaps
     for column in ["id", "vote_count"]:
@@ -176,9 +177,63 @@ def fix_data_types(meta):
     logger.info("fix_data_types: converted types for %s rows.", len(meta))
     return meta
 
+LOW_VALUE_THRESHOLD = 1_000     # budget / revenue below this are placeholders (C18, C19)
+REVIEW_UPPER_LIMIT = 10_000     # 1,000 up to this are flagged for review
+LONG_RUNTIME_MINUTES = 300      # C21
+
+
+def clean_placeholders(meta):
+    """C16, C18-C22: turn placeholder values into 'missing' and add review flags."""
+    meta = meta.copy()
+
+    report_columns = ["budget", "revenue", "runtime", "vote_average", "imdb_id"]
+    missing_before = meta[report_columns].isna().sum()
+
+    # --- Flags first: blanking values would destroy the evidence ---
+    for column in ["budget", "revenue"]:
+        meta[f"{column}_review"] = meta[column].between(
+            LOW_VALUE_THRESHOLD, REVIEW_UPPER_LIMIT, inclusive="left"
+        )
+
+    meta["long_runtime"] = meta["runtime"] > LONG_RUNTIME_MINUTES
+
+    meta["vote_average_zero_with_votes"] = (
+        ((meta["vote_average"] == 0) & (meta["vote_count"] > 0))
+        .fillna(False)
+        .astype(bool)
+    )
+
+    # --- Then turn placeholders into missing ---
+    for column in ["budget", "revenue"]:
+        meta[column] = meta[column].mask(meta[column] < LOW_VALUE_THRESHOLD)
+
+    meta["runtime"] = meta["runtime"].mask(meta["runtime"] == 0)
+    meta["vote_average"] = meta["vote_average"].mask(meta["vote_average"] == 0)
+    meta["imdb_id"] = meta["imdb_id"].mask(meta["imdb_id"] == "0")
+
+    # --- Checks: no placeholders may remain ---
+    for column in ["budget", "revenue"]:
+        if (meta[column] < LOW_VALUE_THRESHOLD).any():
+            raise ValueError(f"{column}: placeholder values remain.")
+    if (meta["runtime"] == 0).any() or (meta["vote_average"] == 0).any():
+        raise ValueError("Zero runtime or vote_average values remain.")
+    if (meta["imdb_id"] == "0").any():
+        raise ValueError("imdb_id '0' values remain.")
+
+    # --- Report what changed ---
+    missing_after = meta[report_columns].isna().sum()
+    for column in report_columns:
+        logger.info(
+            "clean_placeholders: %s missing %s -> %s",
+            column, missing_before[column], missing_after[column],
+        )
+
+    return meta
+
 def clean_movies_metadata(meta):
     """Run every metadata cleaning step in order."""
     meta = repair_split_records(meta)
     meta = remove_duplicate_movies(meta)
     meta = fix_data_types(meta)
+    meta = clean_placeholders(meta)
     return meta
