@@ -7,6 +7,8 @@ from src.scripts.stage2_modules.stage2_fingerprint_data import (
     save_or_verify_fingerprints,
 )
 from src.scripts.stage2_modules.stage2_clean_metadata import clean_movies_metadata
+from src.scripts.stage2_modules.stage2_clean_credits import clean_credits
+from src.scripts.stage2_modules.stage2_clean_keywords import clean_keywords
 
 
 def main():
@@ -41,15 +43,18 @@ def main():
                 dataframe.shape[1],
             )
 
-        # Step 4: Clean movies_metadata
-        logger.info("Starting movies_metadata cleaning.")
+        # Step 4: Clean the tables
+        logger.info("Starting table cleaning.")
 
         clean_metadata = clean_movies_metadata(tables["movies_metadata"])
+        clean_credits_table = clean_credits(tables["credits"])
+        clean_keywords_table = clean_keywords(tables["keywords"])
 
         logger.info(
-            "movies_metadata cleaning completed: %s rows -> %s rows.",
-            len(tables["movies_metadata"]),
+            "Cleaning completed | metadata: %s rows | credits: %s rows | keywords: %s rows",
             len(clean_metadata),
+            len(clean_credits_table),
+            len(clean_keywords_table),
         )
 
         logger.info("Stage 2 ETL pipeline completed successfully.")
