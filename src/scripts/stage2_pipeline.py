@@ -9,6 +9,7 @@ from src.scripts.stage2_modules.stage2_fingerprint_data import (
 from src.scripts.stage2_modules.stage2_clean_metadata import clean_movies_metadata
 from src.scripts.stage2_modules.stage2_clean_credits import clean_credits
 from src.scripts.stage2_modules.stage2_clean_keywords import clean_keywords
+from src.scripts.stage2_modules.stage2_clean_links import clean_links
 
 
 def main():
@@ -49,6 +50,7 @@ def main():
         clean_metadata = clean_movies_metadata(tables["movies_metadata"])
         clean_credits_table = clean_credits(tables["credits"])
         clean_keywords_table = clean_keywords(tables["keywords"])
+        clean_links_table = clean_links(tables["links"])
 
         logger.info(
             "Cleaning completed | metadata: %s rows | credits: %s rows | keywords: %s rows",
