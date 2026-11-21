@@ -6,7 +6,7 @@ EXPECTED_ROWS_WITHOUT_TMDB_ID = 219    # C10
 EXPECTED_EXTRA_TMDB_COPIES = 30        # C12 (the first copy is not counted)
 
 
-def clean_links(links):
+def clean_links(links, expected_missing_tmdb=EXPECTED_ROWS_WITHOUT_TMDB_ID, expected_extra_copies=EXPECTED_EXTRA_TMDB_COPIES,):
     """C10, C12, C15, C27: fix types, rebuild imdbId, flag shared tmdbId, drop rows with no tmdbId."""
     rows_before = len(links)
     links = links.copy()
@@ -27,9 +27,9 @@ def clean_links(links):
 
     # C12: flag every row whose tmdbId is shared with another row (ignore missing values)
     extra_copies = links["tmdbId"].dropna().duplicated().sum()
-    if extra_copies != EXPECTED_EXTRA_TMDB_COPIES:
+    if extra_copies != expected_extra_copies:
         raise ValueError(
-            f"links: expected {EXPECTED_EXTRA_TMDB_COPIES} extra tmdbId copies, found {extra_copies}"
+            f"links: expected {expected_extra_copies} extra tmdbId copies, found {extra_copies}"
         )
     links["shared_tmdb_id"] = links["tmdbId"].notna() & links["tmdbId"].duplicated(keep=False)
     logger.info(
@@ -40,9 +40,9 @@ def clean_links(links):
 
     # C10: drop the rows that have no tmdbId (they stay in the raw file)
     missing_tmdb = links["tmdbId"].isna()
-    if missing_tmdb.sum() != EXPECTED_ROWS_WITHOUT_TMDB_ID:
+    if missing_tmdb.sum() != expected_missing_tmdb:
         raise ValueError(
-            f"links: expected {EXPECTED_ROWS_WITHOUT_TMDB_ID} rows without tmdbId, "
+            f"links: expected {expected_missing_tmdb} rows without tmdbId, "
             f"found {missing_tmdb.sum()}"
         )
     links = links[~missing_tmdb].reset_index(drop=True)

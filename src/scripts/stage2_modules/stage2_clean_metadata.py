@@ -11,7 +11,7 @@ SHIFT = 9
 EXPECTED_SPLIT_RECORDS = 3
 
 
-def repair_split_records(meta):
+def repair_split_records(meta, expected_records=EXPECTED_SPLIT_RECORDS):
     """C01: glue the 3 split metadata records back into single rows."""
     rows_before = len(meta)
 
@@ -23,9 +23,9 @@ def repair_split_records(meta):
     id_as_number = pd.to_numeric(meta["id"], errors="coerce")
     tail_labels = list(meta.index[id_as_number.isna()])
 
-    if len(tail_labels) != EXPECTED_SPLIT_RECORDS:
+    if len(tail_labels) != expected_records:
         raise ValueError(
-            f"Expected {EXPECTED_SPLIT_RECORDS} split records, "
+            f"Expected {expected_records} split records, "
             f"found {len(tail_labels)}"
         )
 
@@ -53,7 +53,7 @@ def repair_split_records(meta):
     meta = meta.drop(index=tail_labels).reset_index(drop=True)
 
     # Checks: the repair must have produced exactly what we expect
-    if len(meta) != rows_before - EXPECTED_SPLIT_RECORDS:
+    if len(meta) != rows_before - expected_records:
         raise ValueError("Row count after repair is wrong.")
     if pd.to_numeric(meta["id"], errors="coerce").isna().any():
         raise ValueError("Some ids are still not numeric after repair.")
@@ -63,7 +63,7 @@ def repair_split_records(meta):
 
 EXPECTED_DUPLICATE_COPIES = 30
 
-def remove_duplicate_movies(meta):
+def remove_duplicate_movies(meta, expected_removed=EXPECTED_DUPLICATE_COPIES):
     """C06 + C07: keep one copy of each movie (highest vote_count, then first in file)."""
     rows_before = len(meta)
     meta = meta.copy()
@@ -107,9 +107,9 @@ def remove_duplicate_movies(meta):
 
     # Checks
     removed = rows_before - len(kept)
-    if removed != EXPECTED_DUPLICATE_COPIES:
+    if removed != expected_removed:
         raise ValueError(
-            f"Expected to remove {EXPECTED_DUPLICATE_COPIES} copies, removed {removed}"
+            f"Expected to remove {expected_removed} copies, removed {removed}"
         )
     if pd.to_numeric(kept["id"]).duplicated().any():
         raise ValueError("Duplicate ids remain after de-duplication.")

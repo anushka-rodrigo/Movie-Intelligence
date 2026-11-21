@@ -1,4 +1,5 @@
 import logging
+import time
 
 from config.logging_config import setup_logging
 from src.scripts.stage2_modules.stage2_extract_data import extract_data
@@ -6,62 +7,52 @@ from src.scripts.stage2_modules.stage2_fingerprint_data import (
     fingerprint_raw_data,
     save_or_verify_fingerprints,
 )
-from src.scripts.stage2_modules.stage2_clean_metadata import clean_movies_metadata
-from src.scripts.stage2_modules.stage2_clean_credits import clean_credits
-from src.scripts.stage2_modules.stage2_clean_keywords import clean_keywords
-from src.scripts.stage2_modules.stage2_clean_links import clean_links
-from src.scripts.stage2_modules.stage2_clean_ratings import clean_ratings
+from src.scripts.stage2_modules.stage2_assemble import build_all_tables
+from src.scripts.stage2_modules.stage2_validate import validate_all
+from src.scripts.stage2_modules.stage2_load import load_tables
 
 
 def main():
     setup_logging()
-
     logger = logging.getLogger(__name__)
+    started = time.time()
 
     logger.info("Starting Stage 2 ETL pipeline.")
 
     try:
-        # Step 1: Verify raw data integrity
+        # 1. Verify that the raw data is the data we recorded
         logger.info("Verifying raw data fingerprints.")
+        save_or_verify_fingerprints(fingerprint_raw_data())
 
-        fingerprints = fingerprint_raw_data()
-        save_or_verify_fingerprints(fingerprints)
-
-        logger.info("Raw data fingerprint verification completed.")
-
-        # Step 2: Extract source datasets
+        # 2. Extract
         logger.info("Starting data extraction.")
-
         tables = extract_data()
-
-        logger.info("Data extraction completed successfully.")
-
-        # Step 3: Log extracted dataset information
         for table_name, dataframe in tables.items():
             logger.info(
-                "Dataset: %s | Rows: %s | Columns: %s",
-                table_name,
-                dataframe.shape[0],
-                dataframe.shape[1],
+                "Extracted %s | rows: %s | columns: %s",
+                table_name, dataframe.shape[0], dataframe.shape[1],
             )
 
-        # Step 4: Clean the tables
-        logger.info("Starting table cleaning.")
+        # 3. Clean and transform
+        logger.info("Cleaning and building the final tables.")
+        final_tables, coverage = build_all_tables(tables)
 
-        clean_metadata = clean_movies_metadata(tables["movies_metadata"])
-        clean_credits_table = clean_credits(tables["credits"])
-        clean_keywords_table = clean_keywords(tables["keywords"])
-        clean_links_table = clean_links(tables["links"])
-        clean_ratings_table = clean_ratings(tables["ratings"])
+        # 4. Validate
+        logger.info("Validating the final tables.")
+        validate_all(final_tables, coverage)
+
+        # 5. Load
+        logger.info("Saving the final tables.")
+        load_tables(final_tables)
+
+        # 6. Prove the raw data was not touched
+        logger.info("Re-verifying raw data fingerprints.")
+        save_or_verify_fingerprints(fingerprint_raw_data())
 
         logger.info(
-            "Cleaning completed | metadata: %s rows | credits: %s rows | keywords: %s rows",
-            len(clean_metadata),
-            len(clean_credits_table),
-            len(clean_keywords_table),
+            "Stage 2 ETL pipeline completed successfully in %.0f seconds.",
+            time.time() - started,
         )
-
-        logger.info("Stage 2 ETL pipeline completed successfully.")
 
     except Exception:
         logger.exception("Stage 2 ETL pipeline failed.")
