@@ -24,9 +24,9 @@ Python, SQL, PostgreSQL, pandas, NumPy, SciPy, statsmodels, scikit-learn, FastAP
 
 ## Status
 
-🚧 Currently in Stage 2: Build the ETL Pipeline
+🚧 Currently in Stage 3: Design the PostgreSQL Database
 
-The project has completed its initial raw-data exploration (Stage 1) and is now building a reproducible ETL pipeline.
+The project has completed its initial raw-data exploration (Stage 1) and building a reproducible ETL pipeline (Stage 2). Now working on stage 3.
 
 ## Repository notes
 
