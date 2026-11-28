@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -12,6 +13,7 @@ from src.scripts.stage2_modules.stage2_clean_links import clean_links
 from src.scripts.stage2_modules.stage2_clean_ratings import clean_ratings
 from src.scripts.stage2_modules.stage2_build_tables import build_lookup_and_link, build_people_tables
 from src.scripts.stage2_modules.stage2_join_tables import build_safe_bridge, link_ratings_to_movies
+from src.scripts.stage2_modules.stage2_load import cast_integer_columns
 
 META_COLUMNS = [
     "adult", "belongs_to_collection", "budget", "genres", "homepage", "id", "imdb_id",
@@ -237,3 +239,20 @@ def test_the_join_stops_when_the_bridge_repeats_a_movielens_id():
     })
     with pytest.raises(ValueError):
         link_ratings_to_movies(pd.DataFrame({"movielens_id": [1]}), bridge)
+
+# ---------- writing whole numbers (Stage 3) ----------
+
+def test_cast_integer_columns_writes_whole_numbers_without_decimals():
+    table = pd.DataFrame({"movie_id": [1, 2], "budget": [4_000_000.0, np.nan], "popularity": [7.0, 3.5]})
+    result = cast_integer_columns(table, ["budget"])
+    text = result.to_csv(index=False, lineterminator="\n")
+    # budget has no ".0" and the missing value is an empty field; popularity keeps its decimals
+    assert text == "movie_id,budget,popularity\n1,4000000,7.0\n2,,3.5\n"
+    # the original table is not changed
+    assert table["budget"].dtype == "float64"
+
+
+def test_cast_integer_columns_refuses_a_value_with_decimals():
+    table = pd.DataFrame({"runtime": [81.5]})
+    with pytest.raises((TypeError, ValueError)):
+        cast_integer_columns(table, ["runtime"])

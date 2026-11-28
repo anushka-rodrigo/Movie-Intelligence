@@ -34,7 +34,7 @@ Some functions had the real expected counts written in (3 broken records, 30 dup
 
 Real runs use the defaults and behave exactly as before. The test supplies its own numbers.
 
-### The 16 tests
+### The 18 tests
 
 | Area | Tests | What is proven |
 |---|---:|---|
@@ -47,11 +47,12 @@ Real runs use the defaults and behave exactly as before. The test supplies its o
 | Ratings (C27) | 1 | The timestamp becomes a real date |
 | List tables | 3 | A list column splits into a lookup and a link table, an id with two names stops the run, and the Latin-alphabet name wins with gender `0` becoming missing |
 | The bridge and the join (C09 to C14) | 2 | Unsafe rows are quarantined with a reason, the loss is counted, and a bridge with a repeated key stops the join |
+| Whole-number export (Stage 3) | 2 | Whole-number columns are written without `.0`, missing values stay empty, and a value with decimals stops the run |
 
 ### Result
 
 ```text
-16 passed
+18 passed
 ```
 
 ## 3. Reproducibility
@@ -71,6 +72,14 @@ RESULT: REPRODUCIBLE
 ```
 
 Three things make this work: a fixed row order (tables are sorted by key), fixed line endings, and no timestamps or random values anywhere in the outputs.
+
+### Change made in Stage 3
+
+The load step now converts `budget`, `revenue` and `runtime` to whole numbers before writing (document 26), because PostgreSQL's `COPY` rejects text such as `4000000.0` in an integer column. Re-running the pipeline changed the hash of **`movies.csv` only**, and the other 16 files kept their hashes. The reproducibility check was run again on the new output and the two runs were identical.
+
+| File | New SHA-256 |
+|---|---|
+| `movies.csv` | `f75be195b7adb2e461be211432d13518887f4a31bb2ce249303a462a1bdb8c1c` |
 
 ## 4. Raw data stays untouched
 

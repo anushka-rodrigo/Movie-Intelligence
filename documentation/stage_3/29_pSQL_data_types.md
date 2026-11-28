@@ -213,8 +213,8 @@ Tables are listed in load order: tables that are pointed at come before the tabl
 ## 5. Things that can go wrong
 
 - **The country code `NA` (Namibia).** pandas reads the text `NA` as missing by default. In `movie_production_countries.csv`, three rows are `NA`. PostgreSQL's `COPY` loads them correctly as text, but any pandas read of these columns must use `keep_default_na=False`.
-- **Whole numbers written as floats.** The CSV writes `budget`, `revenue`, `runtime` and `collection_id` as `4000000.0`, `69.0` and `10.0`. PostgreSQL's `COPY` rejects these in integer columns. **Fix: write these columns as nullable integers (`Int64`) in the Stage 2 load step.** Status: **TODO** (re-run the pipeline, then check that `movies.csv` shows `4000000`).
-- **Text encoding.** Some names contain accents and other scripts. The database must be UTF-8. Status: **TODO** (run `SHOW server_encoding;`).
+- **Whole numbers written as floats (fixed).** The CSV used to write `budget`, `revenue` and `runtime` as `4000000.0` and `69.0`. PostgreSQL's `COPY` rejects these in integer columns. **Fix: these three columns are converted to nullable integers (`Int64`) in the Stage 2 load step, just before writing.** Status: **Done** (pipeline re-run and checked, `movies.csv` now shows `4000000`). `popularity` and `vote_average` still contain values like `7.0`, which is fine for `DOUBLE PRECISION` and `NUMERIC`.
+- **Text encoding.** Some names contain accents and other scripts. The database must be UTF-8. Status: **Done** (`SHOW server_encoding;` returns `UTF8` in the `movie_intelligence` database).
 - **Never open the processed CSVs in Excel and save them.** Excel cannot hold the 26 million rows of `ratings.csv`, and it rewrites dates.
 - **The `ratings` primary key index is large** (26 million rows). The load order must be planned (Phase D).
 
@@ -236,7 +236,7 @@ PostgreSQL indexes primary keys and `UNIQUE` columns automatically, but **not** 
 
 ## 7. Open items before moving on
 
-- [ ] Fix the `.0` export in Stage 2 and confirm the new `movies.csv`
-- [ ] Confirm the database encoding is `UTF8`
-- [ ] Confirm the first lines of `ratings.csv` (rating format and ISO timestamps with seconds)
-- [ ] Draw the ER diagram (next step)
+- [x] Fix the `.0` export in Stage 2 and confirm the new `movies.csv`
+- [x] Confirm the database encoding is `UTF8`
+- [x] Confirm the first lines of `ratings.csv`: the raw text is `1,110,1.0,2015-03-09 22:52:09`, so ratings are written like `1.0` (accepted by `NUMERIC`) and timestamps are ISO with seconds (accepted by `TIMESTAMP`)
+- [x] Draw the ER diagram (see `30_er_diagram.md`)

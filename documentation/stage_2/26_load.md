@@ -33,6 +33,7 @@ os.replace(temp_path, final_path)
 - **Temporary file first.** Each table is written to `name.csv.tmp` and then renamed. A crash in the middle of a write can never leave a half-written table that looks complete.
 - **Fixed line endings.** `lineterminator="\n"` makes the bytes the same on any operating system.
 - **Re-runnable.** Running the load again overwrites its own files and touches nothing else. The raw-data fingerprints file in the same folder is never deleted.
+- **Whole numbers without `.0`.** `budget`, `revenue` and `runtime` are held as `float64` during cleaning so they can be missing. Just before writing, the load step converts them to nullable integers (`cast_integer_columns`, driven by the `integer_columns` entry in the table specification), so the CSV says `4000000` and not `4000000.0`. PostgreSQL's `COPY` rejects the second form in an integer column. A value with decimals stops the run instead of being rounded.
 
 ## 4. The manifest
 

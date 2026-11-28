@@ -1,7 +1,13 @@
 """Every final table: its key, its expected row count, and whether it is sorted before saving."""
 
 TABLE_SPECS = {
-    "movies": {"key": ["movie_id"], "rows": 45_433, "sort": True},
+    "movies": {
+        "key": ["movie_id"],
+        "rows": 45_433,
+        "sort": True,
+        # Held as float64 during cleaning (so they can be missing), written to CSV as whole numbers
+        "integer_columns": ["budget", "revenue", "runtime"],
+    },
     "genres": {"key": ["genre_id"], "rows": 20, "sort": True},
     "movie_genres": {"key": ["movie_id", "genre_id"], "rows": 91_015, "sort": True},
     "production_companies": {"key": ["company_id"], "rows": 23_693, "sort": True},
